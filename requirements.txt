@@ -1,0 +1,8 @@
+cassandra-driver==3.23.0
+click==7.1.2
+Django==2.2
+django-cassandra-engine==1.6.1
+geomet==0.1.2
+pytz==2020.1
+six==1.14.0
+sqlparse==0.3.1
