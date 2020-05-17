@@ -35,8 +35,8 @@ class TokenObtainSerializer(serializers.Serializer):
         # sensible backwards compatibility with older Django versions.
         if self.user is None :
             raise exceptions.AuthenticationFailed(
-                self.error_messages['no_active_account'],
-                'no_active_account',
+
+                'invalid credentails',
             )
 
         return attrs

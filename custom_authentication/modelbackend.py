@@ -4,7 +4,7 @@ class EmailBackend(object):
     def authenticate(self, request, email=None, password=None, **kwargs):
         
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email=email,password=password)
             print("user in @8s",user)
         except Exception as e:
             print("error in @10 in modelbackend is",e)
