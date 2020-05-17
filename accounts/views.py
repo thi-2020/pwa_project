@@ -10,7 +10,7 @@ import datetime
 
         
 
-
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 
 
@@ -73,7 +73,8 @@ class UserCreate(APIView):
             print("dob in line 73 is",dob)
             print("email is ",email)
             user = User(phone=phone,last_name=last_name,
-                        email=email,password=password,first_name=first_name,dob=dob)
+                        email=email,first_name=first_name,dob=dob)
+            user.set_password(password)
             user.save()
             to_send = dict()            
             token = get_tokens_for_user(user=user)
