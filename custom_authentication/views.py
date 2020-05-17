@@ -30,7 +30,19 @@ class TokenObtainPairView(APIView):
             print("serailizer data",serializer.data)
             data = serializer.validated_data
             access = data['access']
-            return Response({"access":access}, status=status.HTTP_200_OK)
+            user = serializer.user
+            to_send = dict()            
+
+
+            to_send['user_id'] = user.id            
+            to_send['first_name'] = user.first_name
+            to_send['last_name'] = user.last_name
+            to_send['email'] = user.email
+            to_send['phone'] = user.phone
+            to_send['dob'] = str(user.dob)
+            to_send['access'] = access
+            return Response(to_send, status=status.HTTP_200_OK)
+
             # try:
             #     print("@29 ")    
             #     serializer.is_valid()
