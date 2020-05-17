@@ -2,7 +2,11 @@ cassandra-driver==3.23.0
 click==7.1.2
 Django==2.2
 django-cassandra-engine==1.6.1
+django-cors-headers==3.2.1
+djangorestframework==3.11.0
+djangorestframework-simplejwt==4.4.0
 geomet==0.1.2
+PyJWT==1.7.1
 pytz==2020.1
 six==1.14.0
 sqlparse==0.3.1
