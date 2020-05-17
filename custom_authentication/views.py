@@ -28,7 +28,9 @@ class TokenObtainPairView(APIView):
         print("email is",email)
         if serializer.is_valid():
             print("serailizer data",serializer.data)
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+            data = serializer.validated_data
+            access = data['access']
+            return Response({"access":access}, status=status.HTTP_200_OK)
             # try:
             #     print("@29 ")    
             #     serializer.is_valid()
