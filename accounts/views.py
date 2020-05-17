@@ -69,12 +69,27 @@ class UserCreate(APIView):
             phone=data['phone']
             first_name=data['first_name']
             last_name=data['last_name']
+            dob=data['dob']
+            print("dob in line 73 is",dob)
             print("email is ",email)
-            user = Test2User(phone=phone,last_name=last_name,
-                        email=email,password=password,first_name=first_name)
+            user = User(phone=phone,last_name=last_name,
+                        email=email,password=password,first_name=first_name,dob=dob)
             user.save()
+            to_send = dict()            
+            token = get_tokens_for_user(user=user)
+            print("dob after save is ",user.dob)
+
+
+            to_send['user_id'] = user.id
+            to_send['first_name'] = user.first_name
+            to_send['last_name'] = user.last_name
+            to_send['email'] = user.email
+            to_send['phone'] = user.phone
+            to_send['dob'] = user.dob
+            to_send['access'] = token['access']
+
             print("94")
-            return Response({"msg":"User created"}, status=status.HTTP_201_CREATED)
+            return Response(to_send, status=status.HTTP_201_CREATED)
 
         return Response({"error":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 

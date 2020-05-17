@@ -12,6 +12,7 @@ class UserSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=150,required=True)
     first_name = serializers.CharField(max_length=150,required=True)
     last_name = serializers.CharField(max_length=150,required=True)
+    dob = serializers.DateField()
 
     # first_name = serializers.CharField(max_length=150)
     # last_name = serializers.CharField(max_length=150)
@@ -24,8 +25,8 @@ class UserSerializer(serializers.Serializer):
         email = data.get('email')
         phone = data.get('phone')
         password = data.get('password')
-        qs1 = Test2User.objects.filter(email = email).exists()
-        qs2 = Test2User.objects.filter(phone = phone).exists()
+        qs1 = User.objects.filter(email = email).exists()
+        qs2 = User.objects.filter(phone = phone).exists()
         print("qs1 is",qs1)
         print("qs2 is",qs2)
 

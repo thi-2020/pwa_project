@@ -5,7 +5,7 @@ from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidTok
 
 from rest_framework_simplejwt.settings import api_settings
 
-from accounts.models import Test2User
+from accounts.models import User
 AUTH_HEADER_TYPES = api_settings.AUTH_HEADER_TYPES
 
 if not isinstance(api_settings.AUTH_HEADER_TYPES, (list, tuple)):
@@ -121,7 +121,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise InvalidToken(_('Token contained no recognizable user identification'))
         print("user id",user_id) 
         try:
-            user = Test2User.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+            user = User.objects.get(**{api_settings.USER_ID_FIELD: user_id})
         except User.DoesNotExist:
             raise AuthenticationFailed(_('User not found'), code='user_not_found')
 
