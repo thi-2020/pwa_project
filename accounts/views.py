@@ -28,17 +28,19 @@ from accounts.models import *
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-# import requests
+from django.core.mail import EmailMultiAlternatives
+from django.utils.crypto import get_random_string
+import threading
 # import random
 
-# from django.core.mail import send_mail
+from django.core.mail import send_mail
 # from django.conf import settings
 
 # from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 # from django.utils.encoding import force_bytes,force_text
 # from django.contrib.sites.shortcuts import get_current_site
 # from rest_framework.decorators import api_view,permission_classes
-# from django.template.loader import render_to_string
+from django.template.loader import render_to_string
 # from django.core.mail import EmailMultiAlternatives
 # from django.contrib.auth.tokens import PasswordResetTokenGenerator
 # class TokenGenerator(PasswordResetTokenGenerator):
@@ -65,6 +67,7 @@ class UserCreate(APIView):
             print("@84")
             data=request.data
             email= data['email']
+            username = data['username']
             password=data['password']
             phone=data['phone']
             first_name=data['first_name']
@@ -73,9 +76,12 @@ class UserCreate(APIView):
             print("dob in line 73 is",dob)
             print("email is ",email)
             user = User(phone=phone,last_name=last_name,
-                        email=email,first_name=first_name,dob=dob)
+                        email=email,first_name=first_name,dob=dob,username=username)
             user.set_password(password)
             user.save()
+            invitation_obj = serializer.invitation_obj
+            invitation_obj.accepted = True
+            invitation_obj.save()
             to_send = dict()            
             token = get_tokens_for_user(user=user)
 
@@ -86,6 +92,7 @@ class UserCreate(APIView):
             to_send['phone'] = user.phone
             to_send['dob'] = str(user.dob)
             to_send['access'] = token['access']
+            to_send['username'] = token['username']
 
             print("94")
             return Response(to_send, status=status.HTTP_201_CREATED)
@@ -94,10 +101,10 @@ class UserCreate(APIView):
 
 
 
-
+from cassandra.cqlengine.management import  sync_table
 
 class index(APIView):
-
+    permission_classes = [AllowAny,]
     def get(self, request, *args,**kwrgs):
         print("came here@11")
         # cluster = Cluster(['127.0.0.1'])
@@ -106,10 +113,12 @@ class index(APIView):
         print("request user",request.user)
         time = datetime.datetime.now()
         print("time is",time)
-        # insert = ExampleModel(description="testing descritiopn at alpha")
-        # insert.save()
+        insert = ExampleModel(description="testing descritiopn at alpha")
+        insert.save()
+        print("insert is ",insert)
+        print("insert created at is  ",insert.created_at)
         #cluster.shutdown()
-
+        sync_table(Test2User)
         qs = ExampleModel.objects.all()
         print("qs is ",qs)
 
@@ -118,3 +127,74 @@ class index(APIView):
             print("example id is",q.example_id," and description is",q.description)
         print("@18")
         return Response({"success":"dhgxhsgd"}, status=status.HTTP_201_CREATED)
+
+
+class SendInvitation(APIView):
+    def post(self, request, format='json'):
+        serializer = InvitationSerializer(data=request.data,context={'request': request})
+        if serializer.is_valid():
+            print("@84")
+            sender = request.user
+            data=request.data
+            email= data['email']
+            key = key = get_random_string(64).lower()
+            print("key is ",key)
+            invitation_obj = Invitation(sender_id=sender.id,email=email,key=key)
+            invitation_obj.save()
+            thread = threading.Thread(target=send_mail_to_invite, args=(sender,email,key))
+            thread.start()
+
+            return Response({"message":"Invitation sent"}, status=status.HTTP_201_CREATED)
+
+        return Response({"error":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CheckInvitation(APIView):
+    permission_classes = [AllowAny,]
+    def post(self, request, format='json'):
+        data=request.data
+        key = data['key']       
+        try:
+            invitation_obj = Invitation.objects.get(key = key)
+        except Exception as e:
+            print("error is ",e)
+            return Response({"error":"Invalid Link"}, status=status.HTTP_400_BAD_REQUEST)
+        if invitation_obj.accepted is True:
+            return Response({"error":"Already registered using this email id"}, status=status.HTTP_400_BAD_REQUEST)
+        email = invitation_obj.email
+    
+        return Response({"key":key,'email':email}, status=200)
+
+
+def send_mail_to_invite(sender,email,key):
+    print("sender email is",sender.email)
+    print("email is",email)
+    print("key is",key)
+
+    context = {
+            # ToDo: The URL can (and should) be constructed using pythons built-in `reverse` method.
+            'username':sender.username,
+            'invite_url': "http://13.235.134.196/signup/?key={key}".format(key=key),
+        }
+    print("context",context)
+
+    email_html_message = render_to_string('email/invitation.html', context)
+    email_plaintext_message = render_to_string('email/invitation.txt', context)
+    subject = "Initation to join pwa"
+            # to_email = settings.FROM_VERIFICATION_EMAIL_ADDRESS
+
+    msg = EmailMultiAlternatives(
+    (subject),
+    email_plaintext_message,
+    'noreply@qilinlab.com',
+    [email]
+    )
+    msg.attach_alternative(email_html_message, "text/html")
+
+    try:
+        msg.send()
+        print("sent mail worked thats why came here")
+    except Exception as e:
+        print("error in sending mail in @284 is",e)
+
+    print("sent")

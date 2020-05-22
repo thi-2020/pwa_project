@@ -14,7 +14,7 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+TEMPLATE_DIR = os.path.join(BASE_DIR,'templates')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -62,7 +62,7 @@ ROOT_URLCONF = 'pwa.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [TEMPLATE_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -161,3 +161,16 @@ REST_FRAMEWORK = {
 
 AUTHENTICATION_BACKENDS = [       
                            'custom_authentication.modelbackend.EmailBackend']
+
+
+EMAIL_USE_SSL = True
+EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'
+EMAIL_HOST_USER = 'AKIAS6GWCC3WSBA2NE6C'
+EMAIL_HOST_PASSWORD = 'BN48JMm2UP9P87erdDXRAtrGrlNqmymwwmIL/ju5ePDd'
+EMAIL_PORT = 465
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=600),
+    }

@@ -18,7 +18,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.dispatch import receiver
 from .signals import reset_password_token_created
-User = get_user_model()
+from accounts.models import  User
 
 __all__ = [
     'ValidateToken',
@@ -148,7 +148,8 @@ class ResetPasswordRequestToken(GenericAPIView):
         clear_expired(now_minus_expiry_time)
 
         # find a user by email address (case insensitive search)
-        users = User.objects.filter(**{'{}__iexact'.format(get_password_reset_lookup_field()): email})
+        user = User.objects.get(email=email)
+        print("user is ",user)
 
         active_user_found = False
 
@@ -209,7 +210,7 @@ def password_reset_token_created(sender, reset_password_token, *args, **kwargs):
     
         'email': reset_password_token.user.email,
         # ToDo: The URL can (and should) be constructed using pythons built-in `reverse` method.
-        'reset_password_url': "https://app.nutritiousdelicious.ca/resetpassword/?token={token}".format(token=reset_password_token.key),
+        'reset_password_url': "http://13.235.134.196:8006/resetpassword/?token={token}".format(token=reset_password_token.key),
         'token':reset_password_token.key
        
     }

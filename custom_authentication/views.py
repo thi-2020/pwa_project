@@ -40,13 +40,7 @@ class TokenObtainPairView(APIView):
             to_send['email'] = user.email
             to_send['phone'] = user.phone
             to_send['dob'] = str(user.dob)
-            to_send['access'] = access
-            return Response(to_send, status=status.HTTP_200_OK)
 
-            # try:
-            #     print("@29 ")    
-            #     serializer.is_valid()
-            # except TokenError as e:
-            #     raise InvalidToken(e.args[0])
+            return Response({"user":to_send,"access":access}, status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=401)
