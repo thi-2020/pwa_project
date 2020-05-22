@@ -16,7 +16,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 
 # from django.shortcuts import render
-# from django.http import HttpResponse
+from django.http import HttpResponse
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -137,7 +137,7 @@ class SendInvitation(APIView):
             sender = request.user
             data=request.data
             email= data['email']
-            key = key = get_random_string(64).lower()
+            key =  get_random_string(64).lower()
             print("key is ",key)
             invitation_obj = Invitation(sender_id=sender.id,email=email,key=key)
             invitation_obj.save()
@@ -198,3 +198,19 @@ def send_mail_to_invite(sender,email,key):
         print("error in sending mail in @284 is",e)
 
     print("sent")
+
+
+def create_test_user(request):
+    phone = get_random_string(10).lower()
+    first_name = get_random_string(10).lower()
+    last_name = get_random_string(10).lower()
+    username = get_random_string(10).lower()
+    password = "Rishabh12@"
+    dob = "1995-04-23"
+    email = get_random_string(10).lower() + "@gmail.com"
+    
+    user = User(phone=phone,last_name=last_name,
+                        email=email,first_name=first_name,dob=dob,username=username)
+    user.set_password(password)
+    user.save()
+    return HttpResponse("email is {email} password is {password}".format(email=email,password=password))
