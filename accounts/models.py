@@ -85,9 +85,9 @@ class User(DjangoCassandraModel):
 class Invitation(DjangoCassandraModel):
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
     sender_id = columns.UUID(required=True)
-    email = columns.Text(max_length=150,required=True)
+    receiver_email = columns.Text(max_length=150,required=True)
     created = columns.DateTime(default=timezone.now,primary_key=True,clustering_order="DESC")
-    key = columns.Text(max_length=100)
+    invitation_key = columns.Text(max_length=100)
     accepted = columns.Boolean(default=False)
     class Meta:
         get_pk_field='id'

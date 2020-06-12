@@ -79,9 +79,9 @@ class UserCreate(APIView):
                         email=email,first_name=first_name,dob=dob,username=username)
             user.set_password(password)
             user.save()
-            invitation_obj = serializer.invitation_obj
-            invitation_obj.accepted = True
-            invitation_obj.save()
+            # invitation_obj = serializer.invitation_obj
+            # invitation_obj.accepted = True
+            # invitation_obj.save()
             to_send = dict()            
             token = get_tokens_for_user(user=user)
 
@@ -92,7 +92,7 @@ class UserCreate(APIView):
             to_send['phone'] = user.phone
             to_send['dob'] = str(user.dob)
             to_send['access'] = token['access']
-            to_send['username'] = token['username']
+            to_send['username'] = user['username']
 
             print("94")
             return Response(to_send, status=status.HTTP_201_CREATED)
@@ -136,6 +136,7 @@ class SendInvitation(APIView):
             print("@84")
             sender = request.user
             data=request.data
+
             email= data['email']
             key =  get_random_string(64).lower()
             print("key is ",key)

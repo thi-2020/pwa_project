@@ -26,6 +26,7 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('cust_auth/', include('custom_authentication.urls')),
     path('password_reset/', include('password_reset.urls')),
+    path('posts/', include('posts.urls')),
 
     # path('admin/', admin.site.urls),
 ]

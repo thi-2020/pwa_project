@@ -19,7 +19,7 @@ class EmailBackend(object):
 
 
     def get_user(self, user_id):
-        User = get_user_model()        
+         
         try:
             return User.objects.get(id=user_id)
         except Exception as e:

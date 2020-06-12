@@ -14,7 +14,7 @@ class UserSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150,required=True)
     username = serializers.CharField(max_length=150,required=True)
     dob = serializers.DateField()
-    key = serializers.CharField(max_length=150,required=True)
+    key = serializers.CharField(max_length=150,required=False)
 
     # first_name = serializers.CharField(max_length=150)
     # last_name = serializers.CharField(max_length=150)
@@ -37,13 +37,13 @@ class UserSerializer(serializers.Serializer):
 
         errors = dict() 
 
-        try:
-            invitation_obj = Invitation.objects.get(key = key)
-        except Exception as e:
-            print("error is ",e)
-            errors['key'] = 'invalid key'
-        if invitation_obj.email != email:
-            errors['email'] = 'Your email is not in the invitation list'
+        # try:
+        #     invitation_obj = Invitation.objects.get(key = key)
+        # except Exception as e:
+        #     print("error is ",e)
+        #     errors['key'] = 'invalid key'
+        # if invitation_obj.email != email:
+        #     errors['email'] = 'Your email is not in the invitation list'
 
     
         if qs1 is True:
@@ -66,7 +66,7 @@ class UserSerializer(serializers.Serializer):
 
         if errors:
             raise serializers.ValidationError(errors)
-        self.invitation_obj = invitation_obj
+        # self.invitation_obj = invitation_obj
         return super(UserSerializer, self).validate(data)
 
 
@@ -119,7 +119,7 @@ class InvitationSerializer(serializers.Serializer):
         count = Invitation.objects.filter(sender_id = user.id).filter(created__gt = sent_threshold).count()
         print("count is ",count)
         if count >= 10:
-            errors['email'] = "you have reached your limit of 5 monthly invitations"
+            errors['email'] = "you have reached your limit of 5 weekly invitations"
         if qs1 is True:
             errors['email'] = "An active user is using this e-mail address"
         if qs2 is True:

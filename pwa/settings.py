@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'password_reset'
+    'password_reset',
+    'posts'
 ]
 
 MIDDLEWARE = [
@@ -163,14 +164,13 @@ AUTHENTICATION_BACKENDS = [
                            'custom_authentication.modelbackend.EmailBackend']
 
 
-EMAIL_USE_SSL = True
-EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'
-EMAIL_HOST_USER = 'AKIAS6GWCC3WSBA2NE6C'
-EMAIL_HOST_PASSWORD = 'BN48JMm2UP9P87erdDXRAtrGrlNqmymwwmIL/ju5ePDd'
-EMAIL_PORT = 465
+
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=600),
     }
+
+
+POST_MAX_LENGTH = 4000
