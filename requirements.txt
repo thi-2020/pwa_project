@@ -1,6 +1,6 @@
 cassandra-driver==3.23.0
 click==7.1.2
-Django==2.2
+Django==2.2.13
 django-cassandra-engine==1.6.1
 django-cors-headers==3.3.0
 djangorestframework==3.11.0
