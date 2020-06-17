@@ -15,6 +15,7 @@ urlpatterns = [
     path('delete_post/', views.DeletePost.as_view(), name='delete_post'),
     path('update_post/', views.UpdatePost.as_view(), name='update_post'),
     path('get_feed/', views.GetFeed.as_view(), name='get_feed'),
+    path('test/', views.test),
     # path('get_others_post_detail/', views.GetSelfPostDetailView.as_view(), name='get_post'),
     # path('get_others_post_list/', views.GetSelfPostDetailView.as_view(), name='get_post'),
    

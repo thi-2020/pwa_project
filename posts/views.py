@@ -40,18 +40,24 @@ class CreatePost(APIView):
         if serializer.is_valid():    
             data = serializer.data 
             post = data['post']
-            
+            category_id = data['category_id']
+            first_name = user.first_name
+            last_name = user.last_name
             today = timezone.now()
             added_date = today.date()
             added_date = str(added_date)
             print("added date is",added_date)
+            print("category id is",category_id)
 
-            post_obj = Post(user_id = user.id,content = post,created_date=added_date)
+            post_obj = Post(user_id = user.id,content = post,created_date=added_date,category_id=category_id,
+            first_name=first_name,last_name=last_name)
             post_obj.save()
             post_id = post_obj.post_id
 
-            latest_post_obj = LatestPost(post_id = post_id,user_id=user.id,content=post,created_date=added_date)
-            post_by_user_obj = PostByUser(post_id = post_id,user_id=user.id,content=post)
+            latest_post_obj = LatestPost(post_id = post_id,user_id=user.id,content=post,created_date=added_date,
+            category_id=category_id,first_name=first_name,last_name=last_name)
+            post_by_user_obj = PostByUser(post_id = post_id,user_id=user.id,content=post,
+            category_id=category_id,first_name=first_name,last_name=last_name)
             latest_post_obj.save()
             post_by_user_obj.save()
             return Response({"post_id":post_id}, status=status.HTTP_201_CREATED)
@@ -62,14 +68,19 @@ class GetPostListView(APIView):
     def post(self, request):
         data = request.data
         user_id = data.get('user_id',None)
+        category_id = data.get('category_id',None)
         print("user id is",user_id)
         if user_id is None:
             return Response({"message": "user_id field is empty"},status=400)
+
+        if category_id is None:
+            return Response({"message": "category_id field is empty"},status=400)
+
         try:
             user = User.objects.get(id=user_id)
         except Exception as e :
             return Response({"message": "User with id `{}` not found.".format(user_id)},status=404)
-        posts_list = PostByUser.objects(user_id = user_id)
+        posts_list = PostByUser.objects(user_id = user_id,category_id=category_id)
         serializer = PostViewSerializer(posts_list, many=True)
         return Response({"articles": serializer.data},status=200)
 
@@ -85,11 +96,13 @@ class GetPostDetailView(APIView):
 
         try:
             user = User.objects.get(id=user_id)
+            print("user name is",user.email)
         except Exception as e :
             print("error is",e)
             return Response({"message": "User with id `{}` not found.".format(user_id)},status=404)           
 
         try:
+            # post = Post.objects.get(post_id = post_id,category_id='1')
             post = Post.objects.get(post_id = post_id)
         except Exception as e :
             print("error in post is",e)
@@ -172,3 +185,18 @@ class GetFeed(APIView):
         serializer = FeedSerializer(posts_list, many=True)
         return Response({"articles": serializer.data},status=200)
 
+
+
+
+
+def test(request):
+    print("came here 1818")
+    # normal = Category.objects.get(name='Normal',category_id=1)
+    normal = PostCategory.create(name='Normal',category_id=1)
+ 
+
+
+    Group = PostCategory.create(name='Group',category_id=2)
+    event = PostCategory.create(name='Event',category_id=3)
+    # event2 = PostCategory.create(name='Eve',category_id=3)
+    return HttpResponse("fone")

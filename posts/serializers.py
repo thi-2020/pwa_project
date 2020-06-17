@@ -3,8 +3,16 @@ from .models import *
 from django.core import exceptions
 from django.conf import settings
 
+
+
+CATEGORY_CHOICES = (
+    ('Nomral','Normal'),
+    ('Group','Group'),
+    ('Event','Event')
+)
 class PostCreateSerializer(serializers.Serializer):
     post = serializers.CharField(max_length=settings.POST_MAX_LENGTH,required=True)
+    category_id = serializers.CharField(max_length=10,required=True)
 
 
 
@@ -13,6 +21,11 @@ class PostViewSerializer(serializers.Serializer):
     post_id = serializers.CharField(max_length=300)
     user_id = serializers.CharField(max_length=300)
     created_at = serializers.DateTimeField()
+    first_name = serializers.CharField(max_length=300)
+    last_name = serializers.CharField(max_length=300)
+    category_id = serializers.CharField(max_length=30)
+    no_of_likes = columns.Integer()
+    no_of_comments = columns.Integer()
 
 
 class FeedSerializer(serializers.Serializer):
@@ -32,7 +45,8 @@ class PostDeleteOrUpdateSerializer(serializers.Serializer):
         user = request.user
 
         try:
-            post_obj = Post.objects.filter(post_id=post_id).first()
+            # post_obj = Post.objects.filter(post_id=post_id).first()
+            post_obj = Post.objects.get(post_id=post_id)
             if post_obj is None:
                 raise ValueError("not present")
         except Exception as e:
