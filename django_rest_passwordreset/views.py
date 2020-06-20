@@ -9,16 +9,19 @@ from rest_framework import status, serializers, exceptions
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from .serializers import EmailSerializer, PasswordTokenSerializer, TokenSerializer
-from .models import ResetPasswordToken, clear_expired, get_password_reset_token_expiry_time, \
+from django_rest_passwordreset.serializers import EmailSerializer, PasswordTokenSerializer, TokenSerializer
+from django_rest_passwordreset.models import ResetPasswordToken, clear_expired, get_password_reset_token_expiry_time, \
     get_password_reset_lookup_field
-from .signals import reset_password_token_created, pre_password_reset, post_password_reset
+from django_rest_passwordreset.signals import reset_password_token_created, pre_password_reset, post_password_reset
 from rest_framework.permissions import AllowAny
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.dispatch import receiver
-from .signals import reset_password_token_created
-from accounts.models import  User
+from django.shortcuts import render
+from django_rest_passwordreset.signals import reset_password_token_created
+from accounts.utils import send_mail
+
+User = get_user_model()
 
 __all__ = [
     'ValidateToken',
@@ -53,7 +56,7 @@ class ResetPasswordValidateToken(GenericAPIView):
         reset_password_token = ResetPasswordToken.objects.filter(key=token).first()
 
         if reset_password_token is None:
-            return Response({'status': 'notfound'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'status': 'expired'}, status=status.HTTP_404_NOT_FOUND)
 
         # check expiry date
         expiry_date = reset_password_token.created_at + timedelta(hours=password_reset_token_validation_time)
@@ -71,7 +74,7 @@ class ResetPasswordConfirm(GenericAPIView):
     An Api View which provides a method to reset a password based on a unique token
     """
     throttle_classes = ()
-    permission_classes = ()
+    permission_classes = (AllowAny,)
     serializer_class = PasswordTokenSerializer
 
     def post(self, request, *args, **kwargs):
@@ -87,7 +90,7 @@ class ResetPasswordConfirm(GenericAPIView):
         reset_password_token = ResetPasswordToken.objects.filter(key=token).first()
 
         if reset_password_token is None:
-            return Response({'status': 'notfound'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'status': 'expired'}, status=status.HTTP_404_NOT_FOUND)
 
         # check expiry date
         expiry_date = reset_password_token.created_at + timedelta(hours=password_reset_token_validation_time)
@@ -134,9 +137,13 @@ class ResetPasswordRequestToken(GenericAPIView):
     serializer_class = EmailSerializer
 
     def post(self, request, *args, **kwargs):
+        success = {}
+        error = {}
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
+        email = email.lower()
+        print("email is",email)
 
         # before we continue, delete all existing expired tokens
         password_reset_token_validation_time = get_password_reset_token_expiry_time()
@@ -148,8 +155,7 @@ class ResetPasswordRequestToken(GenericAPIView):
         clear_expired(now_minus_expiry_time)
 
         # find a user by email address (case insensitive search)
-        user = User.objects.get(email=email)
-        print("user is ",user)
+        users = User.objects.filter(**{'{}__iexact'.format(get_password_reset_lookup_field()): email,'email_verfied':True})
 
         active_user_found = False
 
@@ -163,11 +169,9 @@ class ResetPasswordRequestToken(GenericAPIView):
         # No active user found, raise a validation error
         # but not if DJANGO_REST_PASSWORDRESET_NO_INFORMATION_LEAKAGE == True
         if not active_user_found and not getattr(settings, 'DJANGO_REST_PASSWORDRESET_NO_INFORMATION_LEAKAGE', False):
-            raise exceptions.ValidationError({
-                'email': [_(
-                    "There is no active user associated with this e-mail address or the password can not be changed")],
-            })
-
+            error_msg = "There is no active user associated with this e-mail address or the password can not be changed"
+            error['message'] =error_msg
+            return Response({"success" :success,"error":error}, status=400)
         # last but not least: iterate over all users that are active and can change their password
         # and create a Reset Password Token and send a signal with the created token
         for user in users:
@@ -190,7 +194,8 @@ class ResetPasswordRequestToken(GenericAPIView):
                 # let whoever receives this signal handle sending the email for the password reset
                 reset_password_token_created.send(sender=self.__class__, instance=self, reset_password_token=token)
         # done
-        return Response({'status': 'OK'})
+        success['message'] = "Ok"
+        return Response({"success" :success,"error":error}, status=200)
 
 
 @receiver(reset_password_token_created)
@@ -204,35 +209,33 @@ def password_reset_token_created(sender, reset_password_token, *args, **kwargs):
     :param kwargs:
     :return:
     """
+
+
+
+    # logo_obj = Logo.objects.filter(active=True).first()
+    current_url = settings.CURRENT_WEBISTE_URL
     # send an e-mail to the user
     context = {
         'current_user': reset_password_token.user,
     
         'email': reset_password_token.user.email,
         # ToDo: The URL can (and should) be constructed using pythons built-in `reverse` method.
-        'reset_password_url': "http://13.235.134.196:8006/resetpassword/?token={token}".format(token=reset_password_token.key),
-        'token':reset_password_token.key
-       
+        'reset_password_url': str(current_url)+"/reset/?token={token}".format(token=reset_password_token.key),
+        # 'reset_password_url': "https://api.spendthebits.com/v1/password_reset/validate_token/{token}/".format(token=reset_password_token.key),
+        'token':reset_password_token.key,
+        # 'image_url':current_url + str(logo_obj.image.url)
     }
 
     # render email text
-    email_html_message = render_to_string('email/user_reset_password.html', context)
-    email_plaintext_message = render_to_string('email/user_reset_password.txt', context)
+    receiver_email = reset_password_token.user.email
+    html_address = 'email/user_reset_password.html'
+    text_address = 'email/user_reset_password.txt'
+    subject = "Password Reset for Spend The Bits"
 
-    msg = EmailMultiAlternatives(
-        # title:
-        ("Password Reset for {title}".format(title="Some website title")),
-        # message:
-        email_plaintext_message,
-        # from:
-        settings.EMAIL_HOST_USER,
-        # to:
-        [reset_password_token.user.email]
-    )
-    msg.attach_alternative(email_html_message, "text/html")
-    msg.send()
- 
+    send_mail(receiver_email,subject,context,html_address,text_address)
+    
 
 reset_password_validate_token = ResetPasswordValidateToken.as_view()
 reset_password_confirm = ResetPasswordConfirm.as_view()
 reset_password_request_token = ResetPasswordRequestToken.as_view()
+

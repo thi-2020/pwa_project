@@ -1,1 +1,51 @@
-<dd>
+<!doctype html>
+<html lang="en">
+    <head>
+        {% load static %}
+
+        <style>
+            p{
+                /* font-weight: 500; */
+                font-size: 20px;
+                margin: 0px !important;
+            }
+            .center {
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+                width: 50%;
+                }
+        </style>
+    </head>
+  <body style="padding: 20px; background-color: #ffffff;">
+    <!-- <img src="https://banturakit.com/apii/staticc/accounts/logo/banturakitlogo.png" height="150"  alt=" " class="center"> -->
+    
+     
+
+    <p>Hello,</p>
+    <br>
+
+    <p>You have been invited by {{username}} to join pwa</p>
+
+    <p>If you'd like to join, please click the link  </p>
+
+         
+        <a href="{{invite_url}}" style="text-decoration: none;">
+            <div style="padding: 10px; background-color: #2689C2; color: #FFF; width:50%;text-align: center;font-size: 20px;font-weight: 500;" class="center">
+                Click here to join
+            </div>
+        </a>
+        <br>
+        <p>Best wishes, </p>
+        
+        <!-- <img src="https://banturakit.com/apii/staticc/accounts/sign.png" width="120"  alt=" " class="d-inline-block align-top"> -->
+
+
+        <!-- <p>Team Spend The Bits</p> -->
+       
+           
+     
+     
+<br>
+</body>
+</html>

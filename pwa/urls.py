@@ -13,20 +13,24 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-# from django.contrib import admin
-from django.urls import path
+from django.contrib import admin
 from django.urls import path,include
 
 
 from django.conf import settings
 from django.conf.urls.static import static
-
-
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+admin.site.site_header = "PWA"
+admin.site.site_title = "PWA Admin Portal"
+admin.site.index_title = "Welcome to PWA Admin Portal"
 urlpatterns = [
-    path('accounts/', include('accounts.urls')),
-    path('cust_auth/', include('custom_authentication.urls')),
-    path('password_reset/', include('password_reset.urls')),
-    path('posts/', include('posts.urls')),
+        
+    path('admin/', admin.site.urls),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
 
-    # path('admin/', admin.site.urls),
+    path('accounts/', include(('accounts.urls','accounts'))),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

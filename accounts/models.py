@@ -1,93 +1,89 @@
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
-from django.utils import timezone
-# Create your models here.
-import uuid
-from cassandra.cqlengine import columns
-from django_cassandra_engine.models import DjangoCassandraModel
-from django.contrib.auth import password_validation
-from django.contrib.auth.hashers import (
-    check_password, is_password_usable, make_password,
-)
-class ExampleModel(DjangoCassandraModel):
-    example_id   = columns.UUID(primary_key=True, default=uuid.uuid4)
-    example_type = columns.Integer(index=True)
-    created_at   = columns.DateTime(default=timezone.now)
-    description  = columns.Text(required=False)
+from django.conf import settings
+
+
+class UserManager(BaseUserManager):
+    """Define a model manager for User model with no username field."""
+    use_in_migrations = True
+
+    def _create_user(self, email,username, password, **extra_fields):
+        #this is a private method and should not be used anywhere by anyone
+        """Create and save a User with the given email and password."""
+        is_staff = extra_fields.get('is_staff')
+        if is_staff is True:
+            user = self.model(username=username, **extra_fields)
+        else:            
+            if not email:
+                raise ValueError('The given email must be set')
+            email = self.normalize_email(email)
+            user = self.model(email=email,username=username, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, email,username, password=None, **extra_fields):
+        """Create and save a regular User with the given email and password."""
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(email,username, password, **extra_fields)
+
+    def create_superuser(self,username,password, **extra_fields):
+        """Create and save a SuperUser with the given email and password."""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self._create_user(None,username,password, **extra_fields)
+
+
+class User(AbstractUser):
+
+    email = models.EmailField()
+    phone = models.CharField(max_length=10,blank=True,null=True)
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    def __str__(self):
+        return str(self.username)
 
 
 
-class Test2User(DjangoCassandraModel):
-    id   = columns.UUID(primary_key=True, default=uuid.uuid4)
-    first_name = columns.Text(required=False)
-    last_name = columns.Text(required=False)
-    email = columns.Text(required=False)
-    phone = columns.Text(required=False)
-    password = columns.Text(required=False)
-    created_at  = columns.DateTime(default=timezone.now,primary_key=True,clustering_order="DESC")
-    @property
-    def is_authenticated(self):
-        return True
-    class Meta:
-        get_pk_field='id'
 
 
-class Sachin(DjangoCassandraModel):
-    score = columns.Integer(primary_key=True)
 
-
-class User(DjangoCassandraModel):
-    id   = columns.UUID(primary_key=True, default=uuid.uuid4)
-    first_name = columns.Text(required=False)
-    last_name = columns.Text(required=False)
-    username = columns.Text(required=False)
-    email = columns.Text(required=False)
-    phone = columns.Text(required=False)
-    password = columns.Text(required=False)
-    dob = columns.Date(required=False)
-    created_at  = columns.DateTime(default=timezone.now,primary_key=True,clustering_order="DESC")
-
-    class Meta:
-        get_pk_field='id'
-
-    # Stores the raw password if set_password() is called so that it can
-    # be passed to password_changed() after the model is saved.
-    _password = None
-    @property
-    def is_authenticated(self):
-        return True
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='user_profile')
+    image = models.FileField(upload_to='image/users/', null=True,blank=True, verbose_name="image")
     
+    dob = models.DateField(null=True,blank=True)
 
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self._password is not None:
-            print("@58 in model.py of accounts")
-            password_validation.password_changed(self._password, self)
-            self._password = None
-
-    def set_password(self, raw_password):
-        self.password = make_password(raw_password)
-        self._password = raw_password
-
-    def check_password(self, raw_password):
-        """
-        Return a boolean of whether the raw_password was correct. Handles
-        hashing formats behind the scenes.
-        """
-        def setter(raw_password):
-            self.set_password(raw_password)
-            # Password hash upgrades shouldn't be considered password changes.
-            self._password = None
-            self.save(update_fields=["password"])
-        return check_password(raw_password, self.password, setter)
 
 
-class Invitation(DjangoCassandraModel):
-    id = columns.UUID(primary_key=True, default=uuid.uuid4)
-    sender_id = columns.UUID(required=True)
-    receiver_email = columns.Text(max_length=150,required=True)
-    created = columns.DateTime(default=timezone.now,primary_key=True,clustering_order="DESC")
-    invitation_key = columns.Text(max_length=100)
-    accepted = columns.Boolean(default=False)
+    def __str__(self):
+        return str(self.user)
+
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
     class Meta:
-        get_pk_field='id'
+        abstract = True
+
+
+
+
+class Invitation(BaseModel):
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='invitation')
+    receiver_email = models.EmailField(null=True,blank=True)
+    receiver_phone = models.CharField(max_length=200,null=True,blank=True)
+    invitation_key = models.CharField(max_length=200)
+    accepted = models.BooleanField(default=False)
+    class Meta:
+        ordering = ('-created_at',)
