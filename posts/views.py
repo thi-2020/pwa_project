@@ -30,10 +30,10 @@ from django.utils import timezone
 
 
 
-class PostView(APIView):
-    def get(self, request):
-        articles = NormalPost.objects.all()
-        return Response({"posts": articles},status=200)
+# class PostView(APIView):
+#     def get(self, request):
+#         articles = NormalPost.objects.all()
+#         return Response({"posts": articles},status=200)
 
 
-    def
+#     def
