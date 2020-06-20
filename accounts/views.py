@@ -16,7 +16,8 @@ from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.utils.crypto import get_random_string
 import threading
 # import random
-
+from datetime import timedelta
+from django.utils import timezone
 from django.core.mail import send_mail
 
 class TokenGenerator(PasswordResetTokenGenerator):
@@ -89,10 +90,10 @@ class SendInvitation(APIView):
             print("phone is",phone)
             print("index is",index)
             to_add = check_invitaion_validity(sender,email,phone,index)
-            if to_add['is_limit_error'] is True:
-                to_send.append(to_add)
-                print("caem in @94")
-                return Response(to_send, status=200)
+            # if to_add['is_limit_error'] is True:
+            #     to_send.append(to_add)
+            #     print("caem in @94")
+            #     return Response(to_send, status=200)
 
             
             if to_add['is_error'] is False:
@@ -117,9 +118,19 @@ class SendInvitation(APIView):
 
 
 
+class InvitationLeft(APIView):
+    def get(self, request, format='json'):
 
 
+        user = request.user    
 
+        sent_threshold = timezone.now() - timedelta(days = 7)
+        print("sent threshold is ",sent_threshold)
+        count = Invitation.objects.filter(sender_id = user.id).filter(created_at__gt = sent_threshold).count()        
+
+        invitation_left = 10-count
+
+        return Response({"invitation_left":invitation_left}, status=200)
 
 
 

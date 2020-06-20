@@ -66,26 +66,26 @@ def check_invitaion_validity(sender,email=None,phone=None,index=None):
     user = sender
     errors = dict() 
     is_error = False
-    is_limit_error = False
+    # is_limit_error = False
 
 
-    sent_threshold = timezone.now() - timedelta(days = 7)
-    print("sent threshold is ",sent_threshold)
-    count = Invitation.objects.filter(sender_id = user.id).filter(created_at__gt = sent_threshold).count()
-    print("count is ",count)
-    if count >= 3:
-        errors['limit_error'] = "you have reached your limit of 10 weekly invitations"
-        is_error = True
-        is_limit_error = True
+    # sent_threshold = timezone.now() - timedelta(days = 7)
+    # print("sent threshold is ",sent_threshold)
+    # count = Invitation.objects.filter(sender_id = user.id).filter(created_at__gt = sent_threshold).count()
+    # print("count is ",count)
+    # if count >= 3:
+    #     errors['limit_error'] = "you have reached your limit of 10 weekly invitations"
+    #     is_error = True
+    #     is_limit_error = True
 
-        to_send = {
-            "is_error":is_error,
-            "is_limit_error":is_limit_error,
-            "index":index,
-            "error":errors
-        }
+    #     to_send = {
+    #         "is_error":is_error,
+    #         "is_limit_error":is_limit_error,
+    #         "index":index,
+    #         "error":errors
+    #     }
 
-        return to_send
+    #     return to_send
 
 
 
@@ -118,7 +118,6 @@ def check_invitaion_validity(sender,email=None,phone=None,index=None):
 
     to_send = {
         "is_error":is_error,
-        "is_limit_error":is_limit_error,
         "index":index,
         "error":errors
     }
@@ -138,7 +137,7 @@ def send_mail_to_invite(sender,email,key,invitation_obj_id):
     context = {
             # ToDo: The URL can (and should) be constructed using pythons built-in `reverse` method.
             'username':sender.username,
-            'invite_url': "http://13.235.134.196/signup/?key={key}".format(key=key),
+            'invite_url': "http://localhost:3000/signup/?key={key}".format(key=key),
         }
     print("context",context)
 
