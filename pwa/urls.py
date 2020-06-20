@@ -30,6 +30,7 @@ urlpatterns = [
     path('password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
 
     path('accounts/', include(('accounts.urls','accounts'))),
+    path('posts/', include(('posts.urls','posts'))),
 ]
 
 if settings.DEBUG:

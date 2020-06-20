@@ -55,6 +55,16 @@ class UserCreate(APIView):
             
             user_profile = UserProfile.objects.create(user=user,dob=dob)
 
+            invitation_obj = serializer.invitation_obj
+            invitation_obj.accepted = True
+            invitation_obj.save()
+
+            sender = invitation_obj.sender
+
+            if sender.is_staff is False:
+                connection_object = Connection.objects.create(sender=sender.userprofile,receiver=user.userprofile,
+                accepted=True)
+
            
             if user:               
                 token = get_tokens_for_user(user=user)
@@ -134,6 +144,23 @@ class InvitationLeft(APIView):
 
 
 
+
+class CheckInvitation(APIView):
+    permission_classes = [AllowAny,]
+    def post(self, request, format='json'):
+        data=request.data
+        key = data['key']       
+        try:
+            invitation_obj = Invitation.objects.get(invitation_key = key)
+        except Exception as e:
+            print("error is ",e)
+            return Response({"error":"Invalid Link"}, status=status.HTTP_400_BAD_REQUEST)
+        if invitation_obj.accepted is True:
+            return Response({"error":"Already registered using this email id"}, status=status.HTTP_400_BAD_REQUEST)
+        email = invitation_obj.receiver_email
+        phone = invitation_obj.receiver_phone
+    
+        return Response({"key":key,'email':email,'phone':phone}, status=200)
 
 
 

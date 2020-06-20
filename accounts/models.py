@@ -58,7 +58,7 @@ class User(AbstractUser):
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='user_profile')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='userprofile')
     image = models.FileField(upload_to='image/users/', null=True,blank=True, verbose_name="image")
     
     dob = models.DateField(null=True,blank=True)
@@ -87,3 +87,9 @@ class Invitation(BaseModel):
     accepted = models.BooleanField(default=False)
     class Meta:
         ordering = ('-created_at',)
+
+class Connection(BaseModel):
+    sender = models.ForeignKey(UserProfile,on_delete=models.CASCADE,related_name='connection_sent')
+    receiver = models.ForeignKey(UserProfile,on_delete=models.CASCADE,related_name='connection_received')
+    accepted = models.BooleanField(default=False)
+

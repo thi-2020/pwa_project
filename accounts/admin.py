@@ -73,10 +73,12 @@ class InvitationAdmin(admin.ModelAdmin):
     list_display = ['id','sender','receiver_email',"receiver_phone",'invitation_key',"accepted"]
    
 
-
+class ConnectionAdmin(admin.ModelAdmin):
+    list_display = ['id','sender','receiver',"accepted"]
 
 
 
 admin.site.register(User,UserAdmin)
 admin.site.register(UserProfile,UserProfileAdmin)
 admin.site.register(Invitation,InvitationAdmin)
+admin.site.register(Connection,ConnectionAdmin)

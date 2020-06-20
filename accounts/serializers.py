@@ -21,8 +21,6 @@ class UserSerializer(serializers.Serializer):
                 validators=[UniqueValidator(queryset=User.objects.all(),message = 'phone number already exists')]
                 # validators=[UniqueValidator(queryset=UserProfile.objects.filter(user__phone_verfied=True),message = 'phone number already exists')]
                            )
-
-    username = serializers.CharField(max_length=150,required=True)
     dob = serializers.DateField()
     key = serializers.CharField(max_length=150,required=False)
     last_name = serializers.CharField(max_length=150,required=False)
@@ -37,11 +35,26 @@ class UserSerializer(serializers.Serializer):
        
 
         phone = data.get('phone')
+        email = data.get('email')
+        key = data.get('key')
+        errors = dict() 
+        try:
+            invitation_obj = Invitation.objects.get(invitation_key = key)
+            print("invitation_obj.receiver_email  is",invitation_obj.receiver_email )
+            if invitation_obj.receiver_email is not None and invitation_obj.receiver_email != email:
+                errors['email'] = 'Your email is not in the invitation list'
+        
+            if invitation_obj.receiver_phone is not None and invitation_obj.receiver_phone != phone:
+                errors['phone'] = 'Your phone is not in the invitation list'
+
+
+
+        except Exception as e:
+            print("error is ",e)
+            errors['key'] = 'invalid key'
+
 
         
-                
-
-        errors = dict() 
         if phone.isdigit() is False:
             errors['phone'] = 'should be numbers only'
         try:
@@ -52,7 +65,7 @@ class UserSerializer(serializers.Serializer):
 
         if errors:
             raise serializers.ValidationError(errors)
-
+        self.invitation_obj = invitation_obj
         return super(UserSerializer, self).validate(data)
 
 

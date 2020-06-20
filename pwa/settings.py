@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'import_export',
     'corsheaders',
     'admin_reorder',
+    'posts'
 
     
 ]
