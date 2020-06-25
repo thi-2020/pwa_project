@@ -58,14 +58,14 @@ class OwnPostView(APIView):
         serializer = PostCreateSerializer(data=request.data)
 
 
-    def put(self, request, pk):
-        user = request.user
-        saved_article = get_object_or_404(NormalPost.objects.all(user=user), pk=pk)
-        data = request.data.get('article')
-        serializer = PostCreateSerializer(instance=saved_article, data=data, partial=True
-        if serializer.is_valid(raise_exception=True):
-            article_saved = serializer.save()
-        return Response({"success": "Article '{}' updated successfully".format(article_saved.title)})
+    # def put(self, request, pk):
+    #     user = request.user
+    #     saved_article = get_object_or_404(NormalPost.objects.all(user=user), pk=pk)
+    #     data = request.data.get('article')
+    #     serializer = PostCreateSerializer(instance=saved_article, data=data, partial=True
+    #     if serializer.is_valid(raise_exception=True):
+    #         article_saved = serializer.save()
+    #     return Response({"success": "Article '{}' updated successfully".format(article_saved.title)})
 
 
 
