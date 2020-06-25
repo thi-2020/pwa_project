@@ -98,7 +98,8 @@ class SendInvitation(APIView):
 
         print("count of invitations  is",len(data))
         to_send = []
-        for invitation in data:
+        for invitation in data[0]:
+            
             print("invitation is ",invitation)
             email = invitation.get('email',None)
             phone = invitation.get('phone',None)
