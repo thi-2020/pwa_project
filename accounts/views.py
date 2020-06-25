@@ -19,7 +19,7 @@ import threading
 from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
-
+import json
 class TokenGenerator(PasswordResetTokenGenerator):
       pass
 
@@ -86,11 +86,15 @@ class SendInvitation(APIView):
 
         sender = request.user
         data=request.data
+        print("request.data is ",request.data)
+        # data=json.loads(request.body.decode('utf-8'))
+        # mytext=data['text']
 
 
         print("count of invitations  is",len(data))
         to_send = []
         for invitation in data:
+            print("invitation is ",invitation)
             email = invitation.get('email',None)
             phone = invitation.get('phone',None)
             index = invitation['index']
