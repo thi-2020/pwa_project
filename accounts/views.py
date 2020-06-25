@@ -86,7 +86,7 @@ class UserCreate(APIView):
 
 
 class SendInvitation(APIView):
-    parser_classes = [FormParser,MultiPartParser]
+    parser_classes = (JSONParser,FormParser,MultiPartParser)
     def post(self, request, format='json'):
 
         sender = request.user
