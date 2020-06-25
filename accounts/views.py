@@ -85,11 +85,11 @@ class SendInvitation(APIView):
     def post(self, request, format='json'):
 
         sender = request.user
-        data=request.data
+        # data=request.data
         print("request.data is ",request.data)
-        # data=json.loads(request.body.decode('utf-8'))
-        # mytext=data['text']
-
+        data=json.loads(request.body.decode('utf-8'))
+        
+        print("request.data is ",data)
 
         print("count of invitations  is",len(data))
         to_send = []
