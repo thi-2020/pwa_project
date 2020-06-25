@@ -87,7 +87,7 @@ class SendInvitation(APIView):
         sender = request.user
         # data=request.data
         print("request.data is ",request.data)
-        data=json.loads(request.body.decode('utf-8'))
+        data=json.loads(request.data.decode('utf-8'))
         
         print("request.data is ",data)
 
