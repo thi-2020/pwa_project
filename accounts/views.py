@@ -20,6 +20,10 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
 import json
+
+from rest_framework.decorators import parser_classes
+from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
+
 class TokenGenerator(PasswordResetTokenGenerator):
       pass
 
@@ -82,12 +86,13 @@ class UserCreate(APIView):
 
 
 class SendInvitation(APIView):
+    parser_classes = [FormParser,MultiPartParser]
     def post(self, request, format='json'):
 
         sender = request.user
         # data=request.data
         print("request.data is ",request.data)
-        data=json.loads(request.data.decode('utf-8'))
+        data=json.loads(request.body.decode('utf-8'))
         
         print("request.data is ",data)
 
