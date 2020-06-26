@@ -32,7 +32,7 @@ account_activation_token = TokenGenerator()
 class UserCreate(APIView):
     permission_classes = [AllowAny,]
 
-    def post(self, request, format='json'):
+    def post(self, request,*args,**kwargs):
         serializer = UserSerializer(data=request.data)
         success = {}
         error = {}
