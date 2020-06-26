@@ -86,11 +86,12 @@ class UserCreate(APIView):
 
 
 class SendInvitation(APIView):
-    parser_classes = (JSONParser,FormParser,MultiPartParser)
-    def post(self, request, format='json'):
+    # parser_classes = (JSONParser,FormParser,MultiPartParser)
+    def post(self, request,*args,**kwargs):
 
         sender = request.user
-        data=request.data
+        data = (request.data)
+        # data=list(request.data)
         print("request.data is ",request.data)
         # data=json.loads(request.body.decode('utf-8'))
         
@@ -98,7 +99,7 @@ class SendInvitation(APIView):
 
         print("count of invitations  is",len(data))
         to_send = []
-        for invitation in data[0]:
+        for invitation in data:
             
             print("invitation is ",invitation)
             email = invitation.get('email',None)
