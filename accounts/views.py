@@ -80,7 +80,7 @@ class UserCreate(APIView):
                 json_data['refresh'] = token['refresh']
                 return Response({"success":True,'data':json_data,"msg":None}, status=status.HTTP_201_CREATED)
 
-        return Response({"error":(serializer.errors)[0],"success":False}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error":(serializer.errors),"success":False}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
