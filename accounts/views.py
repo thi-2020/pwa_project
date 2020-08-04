@@ -18,7 +18,7 @@ import threading
 # import random
 from datetime import timedelta
 from django.utils import timezone
-from django.core.mail import send_mail
+from accounts.utils import send_mail
 import json
 
 from rest_framework.decorators import parser_classes
@@ -78,9 +78,9 @@ class UserCreate(APIView):
                 json_data['user_profile_id'] = user_profile.id
                 json_data['access'] = token['access']
                 json_data['refresh'] = token['refresh']
-                return Response({"success":json_data,"error":error}, status=status.HTTP_201_CREATED)
+                return Response({"success":True,'data':json_data,"msg":None}, status=status.HTTP_201_CREATED)
 
-        return Response({"error":serializer.errors,"success":success}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error":(serializer.errors)[0],"success":False}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -134,7 +134,7 @@ class SendInvitation(APIView):
 
             to_send.append(to_add)
 
-        return Response(to_send, status=200)
+        return Response({"success":True,'data':to_send,"msg":None}, status=200)
 
 
 
@@ -150,8 +150,8 @@ class InvitationLeft(APIView):
         count = Invitation.objects.filter(sender_id = user.id).filter(created_at__gt = sent_threshold).count()        
 
         invitation_left = 10-count
-
-        return Response({"invitation_left":invitation_left}, status=200)
+        to_send = {"invitation_left":invitation_left}
+        return Response({"success":True,'data':to_send,"msg":None}, status=200)
 
 
 
@@ -165,13 +165,40 @@ class CheckInvitation(APIView):
             invitation_obj = Invitation.objects.get(invitation_key = key)
         except Exception as e:
             print("error is ",e)
-            return Response({"error":"Invalid Link"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error":{"message":"Invalid Link"},"sucesss":False}, status=status.HTTP_400_BAD_REQUEST)
         if invitation_obj.accepted is True:
-            return Response({"error":"Already registered using this email id"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error":{"message":"Already registered using this email id"},"sucesss":False}, status=status.HTTP_400_BAD_REQUEST)
         email = invitation_obj.receiver_email
         phone = invitation_obj.receiver_phone
-    
-        return Response({"key":key,'email':email,'phone':phone}, status=200)
+        to_send = {"key":key,'email':email,'phone':phone} 
+        return Response({"success":True,'data':to_send,"msg":None}, status=200)
+
+
+def testemail(request):
+
+   
+    key = "dsdsdsds"
+    context = {
+            # ToDo: The URL can (and should) be constructed using pythons built-in `reverse` method.
+            'username':"mahatma",
+            'invite_url': "http://localhost:3000/signup/?key={key}".format(key=key),
+        }
+    print("context",context)
+
+    html_address = 'email/invitation.html'
+    text_address = 'email/invitation.txt'
+    subject = "Initation to join pwa"
+            # to_email = settings.FROM_VERIFICATION_EMAIL_ADDRESS
+
+    email = "jrishabh89fggfgfgfgfgfg0@gmail.com"
+    response = send_mail(email,subject,context,html_address,text_address)
+    print("response is",response)
+    if response['is_sent'] is False:
+        to_add['error']['email'] = "email not sent"
+        invitation_obj.delete()
+
+
+    return HttpResponse("mail sent")
 
 
 

@@ -148,6 +148,7 @@ def send_mail_to_invite(sender,email,key,invitation_obj_id):
 
 
     response = send_mail(email,subject,context,html_address,text_address)
+    print("response is",response)
     if response['is_sent'] is False:
         to_add['error']['email'] = response['msg']
         invitation_obj.delete()
