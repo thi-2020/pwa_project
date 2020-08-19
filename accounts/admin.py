@@ -7,10 +7,10 @@ from import_export.widgets import ForeignKeyWidget
 
 class UserAdmin(DjangoUserAdmin):
     # list_display = ("id",'email','username','phone','phone_verfied',
-    list_display = ("id",'email','username','phone','date_joined','is_staff',)
+    list_display = ("id",'email','username','phone','date_joined','is_staff','first_name','last_name')
     # here in fieldsets we add the fields which users can see in admin panel
     fieldsets = (
-        (None, {'fields': ('email','username','password','phone')}),
+        (None, {'fields': ('email','username','password','phone','first_name','last_name')}),
         # ('Personal info', {'fields': ('',)}),
         # ('Permissions', {'fields': ('',)}),
     )
@@ -20,7 +20,7 @@ class UserAdmin(DjangoUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username','phone','password1', 'password2','is_staff')}
+            'fields': ('email', 'username','first_name','last_name','phone','password1', 'password2','is_staff')}
         ),
     )
     ordering = ('-date_joined',)
@@ -74,11 +74,12 @@ class InvitationAdmin(admin.ModelAdmin):
    
 
 class ConnectionAdmin(admin.ModelAdmin):
-    list_display = ['id','sender','receiver',"accepted"]
+    list_display = ['id','sender','receiver',]
 
 
 
 admin.site.register(User,UserAdmin)
+admin.site.register(FriendshipRequest)
 admin.site.register(UserProfile,UserProfileAdmin)
 admin.site.register(Invitation,InvitationAdmin)
 admin.site.register(Connection,ConnectionAdmin)

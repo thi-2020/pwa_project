@@ -15,9 +15,13 @@ urlpatterns = [
     path('get_invitations_left/', views.InvitationLeft.as_view(), name='get_invitations_left'),
     path('check_invitation/', views.CheckInvitation.as_view(), name='check_invitation'),
     path('testemail/', views.testemail, name='testemail'),
+    path('deleteconnection/', views.deleteconnection, name='testemail'),
 
 
-
+    #friendship
+    path('friend/requests/', views.GetFriendRequestList.as_view(), name='get_friend_requests_list'),
+    path('friend/mutual_connections/', views.GetMutualConnectionList.as_view(), name='mutual_connections'),
+    
     
 
 ]

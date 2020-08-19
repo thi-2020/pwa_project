@@ -23,6 +23,9 @@ import json
 
 from rest_framework.decorators import parser_classes
 from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
+from .pagination import PaginationHandlerMixin
+from rest_framework.pagination import PageNumberPagination
+
 
 class TokenGenerator(PasswordResetTokenGenerator):
       pass
@@ -66,8 +69,8 @@ class UserCreate(APIView):
             sender = invitation_obj.sender
 
             if sender.is_staff is False:
-                connection_object = Connection.objects.create(sender=sender.userprofile,receiver=user.userprofile,
-                accepted=True)
+                connection_object = Connection.objects.create(sender=sender.userprofile,
+                receiver=user.userprofile)
 
            
             if user:               
@@ -200,5 +203,99 @@ def testemail(request):
 
     return HttpResponse("mail sent")
 
+def mutual_friend_list(user1,user2):
+
+    list1 = Connection.objects.filter(sender=user1).values_list('receiver',flat=True) 
+    list1 = list(list1)   
+    list2 = Connection.objects.filter(receiver = user1).values_list('sender',flat=True)  
+    list2 = list(list2)  
+    print("type of list 1 is ",type(list1))
+    list_a = list1 + list2
+    print("lista is",list_a)
+    a_set = set(list_a)
+    list3 = Connection.objects.filter(sender = user2).values_list('receiver',flat=True) 
+    list3 = list(list3)   
+    list4 = Connection.objects.filter(receiver = user2).values_list('sender',flat=True)       
+    list4 = list(list4)
+
+    list_b = list3 + list4
+    b_set = set(list_b)
+    result = (a_set.intersection(b_set))
+    result_list = list(result) 
+    return result_list
 
 
+class BasicPagination(PageNumberPagination):
+    page_size_query_param = 'limit'
+    page_size = 2
+
+class GetFriendRequestList(APIView,PaginationHandlerMixin):
+    pagination_class = BasicPagination
+
+    def get(self, request, format=None):
+        user = request.user
+        request_list = FriendshipRequest.objects.filter(to_user=user)
+
+        new_queryset = request_list.order_by('-created')
+        page = self.paginate_queryset(new_queryset)
+        to_send = []
+        for obj in page:
+            thumbnail = obj.from_user.userprofile.thumbnail.url
+
+            full_name = str(obj.from_user.first_name)+" " +str(obj.from_user.last_name)
+
+            mutual_connections_list = mutual_friend_list(user,obj.from_user)
+            mutual_connections = len(mutual_connections_list)
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                "mutual_connections":mutual_connections,
+
+
+            }
+            to_send.append(to_add)
+        print("to_send is ",to_send)
+        to_send = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+        return Response(to_send.data,status=200)
+
+
+class GetMutualConnectionList(APIView):
+    
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        
+        username = data.get('username')
+
+        other_user = User.objects.get(username=username)
+
+        mutual_connections_list = mutual_friend_list(user,other_user)
+        to_send = []
+
+        for user_id in mutual_connections_list:
+            user = User.objects.get(id=user_id)
+
+            thumbnail = user.userprofile.thumbnail.url
+
+            full_name = str(user.first_name)+" " +str(user.last_name)
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                
+
+
+            }
+
+            to_send.append(to_add)
+
+
+        print("to_send is",to_send)
+        return Response(to_send,status=200)
+
+def deleteconnection(request):
+
+    connection_list = Connection.objects.all()
+    for connection in connection_list:
+        connection.delete()
+    return HttpResponse("deleted")
