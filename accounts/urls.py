@@ -21,6 +21,7 @@ urlpatterns = [
     #friendship
     path('friend/requests/', views.GetFriendRequestList.as_view(), name='get_friend_requests_list'),
     path('friend/mutual_connections/', views.GetMutualConnectionList.as_view(), name='mutual_connections'),
+    path('friend/all_friends/', views.GetAllFriendsList.as_view(), name='all_friends'),
     
     
 

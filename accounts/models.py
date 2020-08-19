@@ -142,15 +142,15 @@ class Invitation(BaseModel):
         ordering = ('-created_at',)
 
 class Connection(BaseModel):
-    sender = models.ForeignKey(User,on_delete=models.CASCADE,related_name='connection_sent')
-    receiver = models.ForeignKey(User,on_delete=models.CASCADE,related_name='connection_received')
+    from_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='connection_sent')
+    to_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='connection_received')
     # accepted = models.BooleanField(default=False)
     # rejected = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         verbose_name = ("Connection")
         verbose_name_plural = ("Connections")
-        unique_together = ("sender", "receiver")
+        unique_together = ("from_user", "to_user")
 
 
 class FriendshipRequest(models.Model):
@@ -179,9 +179,9 @@ class FriendshipRequest(models.Model):
 
         Connection.objects.create(from_user=self.to_user, to_user=self.from_user)
 
-        friendship_request_accepted.send(
-            sender=self, from_user=self.from_user, to_user=self.to_user
-        )
+        # friendship_request_accepted.send(
+        #     sender=self, from_user=self.from_user, to_user=self.to_user
+        # )
 
         self.delete()
 

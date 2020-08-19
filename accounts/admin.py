@@ -74,7 +74,7 @@ class InvitationAdmin(admin.ModelAdmin):
    
 
 class ConnectionAdmin(admin.ModelAdmin):
-    list_display = ['id','sender','receiver',]
+    list_display = ['id','from_user','to_user',]
 
 
 
