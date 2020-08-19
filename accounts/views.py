@@ -247,10 +247,12 @@ class GetFriendRequestList(APIView,PaginationHandlerMixin):
 
             mutual_connections_list = mutual_friend_list(user,obj.from_user)
             mutual_connections = len(mutual_connections_list)
+            user_id = obj.from_user.id
             to_add = {
                 "thumbnail":thumbnail,
                 "full_name":full_name,
                 "mutual_connections":mutual_connections,
+                "user_id":user_id
 
 
             }
@@ -302,14 +304,13 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
             user = User.objects.get(id=user_id)
 
             thumbnail = user.userprofile.thumbnail.url
-
+            
             full_name = str(user.first_name)+" " +str(user.last_name)
             to_add = {
                 "thumbnail":thumbnail,
                 "full_name":full_name,
+                "user_id":user_id,
                 
-
-
             }
 
             to_send.append(to_add)
