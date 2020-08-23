@@ -156,3 +156,42 @@ def send_mail_to_invite(sender,email,key,invitation_obj_id):
 
     return response
 
+
+
+def mutual_friend_list(user1,user2):
+
+    list1 = Connection.objects.filter(from_user=user1).values_list('to_user',flat=True) 
+    list1 = list(list1)   
+    # list2 = Connection.objects.filter(receiver = user1).values_list('sender',flat=True)  
+    # list2 = list(list2)  
+    print("type of list 1 is ",type(list1))
+    list_a = list1 
+    print("lista is",list_a)
+    a_set = set(list_a)
+    list3 = Connection.objects.filter(from_user = user2).values_list('to_user',flat=True) 
+    list3 = list(list3)   
+    # list4 = Connection.objects.filter(receiver = user2).values_list('sender',flat=True)       
+    # list4 = list(list4)
+
+    list_b = list3 
+    b_set = set(list_b)
+    result = (a_set.intersection(b_set))
+    result_list = list(result) 
+    return result_list
+
+
+def friendhip_status(from_user,to_user):
+
+    if Connection.objects.filter(from_user=from_user,to_user=to_user).exists():
+        return "friend"
+    
+
+    if FriendshipRequest.objects.filter(from_user=from_user,to_user=to_user).exists():
+        return "friend_request_sent"
+
+    return "not_friend"
+
+
+
+
+

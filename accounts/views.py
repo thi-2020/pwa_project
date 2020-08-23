@@ -8,7 +8,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny
 from django.conf import settings
 
-from accounts.utils import (get_tokens_for_user,check_invitaion_validity,send_mail_to_invite)
+from accounts.utils import (get_tokens_for_user,check_invitaion_validity,send_mail_to_invite,
+mutual_friend_list,friendhip_status)
 
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes,force_text
@@ -25,7 +26,7 @@ from rest_framework.decorators import parser_classes
 from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from .pagination import PaginationHandlerMixin
 from rest_framework.pagination import PageNumberPagination
-
+from django.db.models import Q
 
 class TokenGenerator(PasswordResetTokenGenerator):
       pass
@@ -69,8 +70,8 @@ class UserCreate(APIView):
             sender = invitation_obj.sender
 
             if sender.is_staff is False:
-                connection_object = Connection.objects.create(sender=sender.userprofile,
-                receiver=user.userprofile)
+                connection_object1 = Connection.objects.create(from_user=sender,to_user=user)
+                connection_object2 = Connection.objects.create(from_user=user,to_user=sender)
 
            
             if user:               
@@ -203,26 +204,7 @@ def testemail(request):
 
     return HttpResponse("mail sent")
 
-def mutual_friend_list(user1,user2):
 
-    list1 = Connection.objects.filter(from_user=user1).values_list('to_user',flat=True) 
-    list1 = list(list1)   
-    # list2 = Connection.objects.filter(receiver = user1).values_list('sender',flat=True)  
-    # list2 = list(list2)  
-    print("type of list 1 is ",type(list1))
-    list_a = list1 
-    print("lista is",list_a)
-    a_set = set(list_a)
-    list3 = Connection.objects.filter(from_user = user2).values_list('to_user',flat=True) 
-    list3 = list(list3)   
-    # list4 = Connection.objects.filter(receiver = user2).values_list('sender',flat=True)       
-    # list4 = list(list4)
-
-    list_b = list3 
-    b_set = set(list_b)
-    result = (a_set.intersection(b_set))
-    result_list = list(result) 
-    return result_list
 
 
 class BasicPagination(PageNumberPagination):
@@ -234,7 +216,7 @@ class GetFriendRequestList(APIView,PaginationHandlerMixin):
 
     def get(self, request, format=None):
         user = request.user
-        request_list = FriendshipRequest.objects.filter(to_user=user)
+        request_list = FriendshipRequest.objects.filter(to_user=user,rejected__isnull=True)
 
         new_queryset = request_list.order_by('-created')
         page = self.paginate_queryset(new_queryset)
@@ -252,7 +234,8 @@ class GetFriendRequestList(APIView,PaginationHandlerMixin):
                 "thumbnail":thumbnail,
                 "full_name":full_name,
                 "mutual_connections":mutual_connections,
-                "user_id":user_id
+                "user_id":user_id,
+                "request_id":obj.id,
 
 
             }
@@ -269,9 +252,11 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
         user = request.user
         data = request.data
         
-        username = data.get('username')
-
-        other_user = User.objects.get(username=username)
+        user_id = data.get('user_id')
+        try:
+            other_user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"msg":"user not found"},status=404)
 
         mutual_connections_list = mutual_friend_list(user,other_user)
         # page = self.paginate_queryset(new_queryset)
@@ -319,7 +304,8 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
         print("to_send is",to_send)
         to_send = self.get_paginated_response(to_send)
         print("to_send is",to_send)
-        return Response(to_send.data,status=200)
+        return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+      
 
 def deleteconnection(request):
 
@@ -340,17 +326,33 @@ class GetAllFriendsList(APIView,PaginationHandlerMixin):
         
         sort_type = request.query_params.get('sort_type',None)
         search = request.query_params.get('search',None)
+    
 
         
         new_queryset =  Connection.objects.filter(from_user=user)
         
         if search is not None:
-            print("search is",search)
-            qs1 = new_queryset.filter(to_user__first_name__icontains=search)
-            print("qs 1 is",qs1)
-            qs2 = new_queryset.filter(to_user__last_name__icontains=search)
-            print("qs 2 is",qs2)
-            new_queryset = qs1 | qs2
+
+            if ' ' in search:
+                first_name_query = ((search.split(" "))[0]).strip()
+                last_name_query = ((search.split(" "))[1]).strip()
+            else:
+                first_name_query = search
+                last_name_query = search
+            print("search_query is",search)
+            print("first_name_query is",first_name_query)
+            print("last_name_query is",last_name_query)
+            new_queryset = new_queryset.filter(            
+                Q(to_user__first_name__icontains=first_name_query) | Q(to_user__last_name__icontains=last_name_query)
+                |  Q(to_user__username__icontains=first_name_query) |  Q(to_user__username__icontains=last_name_query)   )
+            new_queryset = new_queryset.exclude(id=user.id).distinct()    
+
+            # print("search is",search)
+            # qs1 = new_queryset.filter(to_user__first_name__icontains=search)
+            # print("qs 1 is",qs1)
+            # qs2 = new_queryset.filter(to_user__last_name__icontains=search)
+            # print("qs 2 is",qs2)
+            # new_queryset = qs1 | qs2
 
 
         if sort_type is not None:
@@ -381,6 +383,117 @@ class GetAllFriendsList(APIView,PaginationHandlerMixin):
         print("to_send is ",to_send)
         to_send = self.get_paginated_response(to_send)
         print("to_send is ",to_send)
-        return Response(to_send.data,status=200)
+        
+        return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+
+
+class HandleFriendRequest(APIView):
+
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        request_id = data.get("request_id")
+        request_answer = data.get("request_answer")
+
+        try:
+            friendship_request_object = FriendshipRequest.objects.get(id=request_id)
+            if friendship_request_object.rejected is not None:
+                return Response({"success":False,"error":{"message":"Already Rejected"}},status=403)
+
+        except Exception as e:
+            print("error is ",e)
+            return Response({"success":False,"error":{"message":"request not found"}},status=404)
+            
+
+        if friendship_request_object.to_user != user:
+            return Response({"success":False,"error":{"message":"not authorized"}},status=403)
+           
+
+        if request_answer != "rejected" and request_answer != "accepted":
+            return Response({"success":False,"error":{"message":"not authorized"}},status=403)
+            
+
+
+        if request_answer == "accepted":
+            friendship_request_object.accept()
+
+        if request_answer == "rejected":
+            friendship_request_object.reject()
+
+        return Response({"success":True,"data":{},"msg":"ok"},status=200)
+
+
+
+
+class SearchBarResults(APIView,PaginationHandlerMixin):
+    pagination_class = BasicPagination
+    def get(self, request, format=None):
+        user = request.user
+
+        search_query =  request.query_params.get('search',None)
+        if ' ' in search_query:
+            first_name_query = ((search_query.split(" "))[0]).strip()
+            last_name_query = ((search_query.split(" "))[1]).strip()
+        else:
+            first_name_query = search_query
+            last_name_query = search_query
+        print("search_query is",search_query)
+        print("first_name_query is",first_name_query)
+        print("last_name_query is",last_name_query)
+        user_list = User.objects.filter(            
+            Q(first_name__icontains=first_name_query) | Q(last_name__icontains=last_name_query)
+            |  Q(username__icontains=first_name_query) |  Q(username__icontains=last_name_query)   )
+        user_list = user_list.exclude(id=user.id).distinct()
+        user_list = user_list.order_by('first_name')
+        page = self.paginate_queryset(user_list)
+        to_send = []
+        for obj in page:
+            friendhip_status_result = friendhip_status(user,obj)
+            thumbnail = obj.userprofile.thumbnail.url
+
+            full_name = str(obj.first_name)+" " +str(obj.last_name)
+
+            mutual_connections_list = mutual_friend_list(user,obj)
+            mutual_connections = len(mutual_connections_list)
+
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                "mutual_connections":mutual_connections,
+                "friendship_status":friendhip_status_result,
+                "user_id":obj.id
+
+            }
+
+            to_send.append(to_add)
+
+        print("to_send is ",to_send)
+        people_search_result = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+
+        return Response({"success":True,"data":{'people':people_search_result.data},"msg":"ok"},status=200)
+
+
+class SendFriendRequest(APIView):
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        user_id = data.get("user_id")
+        
+
+        try:
+            to_user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"success":False,"error":{"message":"User not found"}},status=404)
+
+        request_object, created = FriendshipRequest.objects.get_or_create(from_user=user,to_user=to_user)
+
+
+
+
+        return Response({"success":True,"data":{'request_id':request_object.id},"msg":"ok"},status=200)
+
+  
+
 
 
