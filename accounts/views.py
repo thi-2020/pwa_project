@@ -92,19 +92,34 @@ class GetProfileInfo(APIView):
         user = request.user
         user_profile = user.userprofile
         
-
+        full_name = str(user.first_name)+" " +str(user.last_name)
         profile_photo = user_profile.profile_photo.url
-        cover_photo = user_profile.cover_photo.url
+        
         dob = user_profile.dob
 
-        
-        full_name = str(user.first_name)+" " +str(user.last_name)
+        cover_photo = user_profile.cover_photo
+
+        if cover_photo.name!=u'':
+            print("length of name is ",len(cover_photo.name))
+            cover_photo = cover_photo.url
+        else:
+            cover_photo = None    
+
+
+
+
+
 
         to_send = {
             "profile_photo":profile_photo,
             "full_name":full_name,
             "cover_photo":cover_photo,
-            "dob":dob
+            "dob":dob,
+            "current_city":user_profile.current_city,
+            "no_of_friend":user_profile.no_of_friend,
+            "no_of_followers":user_profile.no_of_followers,
+            "no_of_following":user_profile.no_of_following,
+            "complete_status":user_profile.complete_status,
         }
         return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 

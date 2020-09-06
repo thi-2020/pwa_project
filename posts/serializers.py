@@ -60,7 +60,7 @@ class PostCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Empty post not allowed")
 
         if visibilty_status is None:
-            raise serializers.ValidationError("visibilty_status is None")
+            raise serializers.ValidationError("visibilty_status is not present")
         
         print("visibilty_status is ",visibilty_status)
         if visibilty_status not in  ['connections','everyone','connection_and_followers']:

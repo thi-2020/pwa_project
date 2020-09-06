@@ -64,8 +64,7 @@ class UserProfile(models.Model):
         default='/image/profile_photo/default.png')
 
     cover_photo = models.FileField(upload_to='image/cover_photo/', null=True,blank=True, 
-        verbose_name="cover_photo",
-        default='/image/cover_photo/default.png')
+        verbose_name="cover_photo")
 
     complete_status = models.IntegerField(default=1)
 
