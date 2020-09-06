@@ -59,11 +59,22 @@ class User(AbstractUser):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='userprofile')
-    image = models.FileField(upload_to='image/users/', null=True,blank=True, verbose_name="image")
-    thumbnail = models.FileField(upload_to='image/thumbnail/', null=True,blank=True,
-     verbose_name="thumbnail",default='image/thumbnail/Desert.jpg')
-    
+    profile_photo = models.FileField(upload_to='image/profile_photo/', null=True,blank=True, 
+        verbose_name="profile_photo",
+        default='/image/profile_photo/default.png')
+
+    cover_photo = models.FileField(upload_to='image/cover_photo/', null=True,blank=True, 
+        verbose_name="cover_photo",
+        default='/image/cover_photo/default.png')
+
+    complete_status = models.IntegerField(default=1)
+
     dob = models.DateField(null=True,blank=True)
+    current_city = models.CharField(max_length = 500,null=True,blank=True)
+    no_of_friend = models.IntegerField(default=0)
+    no_of_followers = models.IntegerField(default=0)
+    no_of_following = models.IntegerField(default=0)
+
     
     # def save(self, *args, **kwargs):
 
@@ -182,6 +193,12 @@ class FriendshipRequest(models.Model):
         # friendship_request_accepted.send(
         #     sender=self, from_user=self.from_user, to_user=self.to_user
         # )
+        from_user.userprofile.no_of_friend += 1
+        from_user.userprofile.save()
+
+        to_user.userprofile.no_of_friend += 1
+        to_user.userprofile.save()
+
 
         self.delete()
 
@@ -213,3 +230,30 @@ class FriendshipRequest(models.Model):
     #     self.save()
     #     bust_cache("requests", self.to_user.pk)
     #     return True
+
+
+
+
+
+
+
+
+class VisibilitySettings(BaseModel):
+    types = [
+    ('connections','connections'),
+    ('everyone','everyone'),
+    ('myself','myself'),
+    ('connection_and_followers','connection_and_followers')
+    ]
+    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='visibility_settings')
+
+    who_can_see_your_likes_and_comments = models.CharField(        
+        max_length=50,
+        choices=types,
+        default="everyone")
+
+    who_can_see_connection_list = models.CharField(        
+        max_length=50,
+        choices=types,
+        default="everyone")
+

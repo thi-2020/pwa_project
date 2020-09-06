@@ -87,6 +87,65 @@ class UserCreate(APIView):
         return Response({"error":(serializer.errors),"success":False}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class GetProfileInfo(APIView):
+    def get(self,request):
+        user = request.user
+        user_profile = user.userprofile
+        
+
+        profile_photo = user_profile.profile_photo.url
+        cover_photo = user_profile.cover_photo.url
+        dob = user_profile.dob
+
+        
+        full_name = str(user.first_name)+" " +str(user.last_name)
+
+        to_send = {
+            "profile_photo":profile_photo,
+            "full_name":full_name,
+            "cover_photo":cover_photo,
+            "dob":dob
+        }
+        return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
+
+
+class GetOtherProfileInfo(APIView):
+    def post(self,request):
+
+        data = request.data
+        user_id = data.get('user_id',None)
+
+        if user_id is None:
+            return Response({"success":False,"error":{"message":"user_id not present"}},status=404)
+
+
+        try:
+            other_user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"success":False,"error":{"message":"user not found"}},status=404)
+            
+        user_profile = user.userprofile
+        
+
+        profile_photo = user_profile.profile_photo.url
+        cover_photo = user_profile.cover_photo.url
+        dob = user_profile.dob
+        
+        
+        full_name = str(user.first_name)+" " +str(user.last_name)
+
+        to_send = {
+            "profile_photo":profile_photo,
+            "full_name":full_name,
+            "cover_photo":cover_photo,
+            "dob":dob
+        }
+
+
+        return Response({"success":True,"data":{'people':peopl},"msg":"ok"},status=200)
+
+
+
 
 
 class SendInvitation(APIView):
@@ -211,7 +270,7 @@ class BasicPagination(PageNumberPagination):
     page_size_query_param = 'limit'
     page_size = 5
 
-class GetFriendRequestList(APIView,PaginationHandlerMixin):
+class GetReceivedFriendRequestList(APIView,PaginationHandlerMixin):
     pagination_class = BasicPagination
 
     def get(self, request, format=None):
@@ -223,7 +282,7 @@ class GetFriendRequestList(APIView,PaginationHandlerMixin):
         to_send = []
 
         for obj in page:
-            thumbnail = obj.from_user.userprofile.thumbnail.url
+            thumbnail = obj.from_user.userprofile.profile_photo.url
 
             full_name = str(obj.from_user.first_name)+" " +str(obj.from_user.last_name)
 
@@ -288,7 +347,7 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
         for user_id in page:
             user = User.objects.get(id=user_id)
 
-            thumbnail = user.userprofile.thumbnail.url
+            thumbnail = user.userprofile.profile_photo.url
             
             full_name = str(user.first_name)+" " +str(user.last_name)
             to_add = {
@@ -366,7 +425,7 @@ class GetAllFriendsList(APIView,PaginationHandlerMixin):
         page = self.paginate_queryset(new_queryset)
         to_send = []
         for obj in page:
-            thumbnail = obj.to_user.userprofile.thumbnail.url
+            thumbnail = obj.to_user.userprofile.profile_photo.url
 
             full_name = str(obj.to_user.first_name)+" " +str(obj.to_user.last_name)
 
@@ -449,7 +508,7 @@ class SearchBarResults(APIView,PaginationHandlerMixin):
         to_send = []
         for obj in page:
             friendhip_status_result = friendhip_status(user,obj)
-            thumbnail = obj.userprofile.thumbnail.url
+            thumbnail = obj.userprofile.profile_photo.url
 
             full_name = str(obj.first_name)+" " +str(obj.last_name)
 

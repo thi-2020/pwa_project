@@ -20,9 +20,9 @@ from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
-admin.site.site_header = "PWA"
-admin.site.site_title = "PWA Admin Portal"
-admin.site.index_title = "Welcome to PWA Admin Portal"
+# admin.site.site_header = "PWA"
+# admin.site.site_title = "PWA Admin Portal"
+# admin.site.index_title = "Welcome to PWA Admin Portal"
 urlpatterns = [
         
     path('admin/', admin.site.urls),

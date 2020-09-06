@@ -9,12 +9,17 @@ from posts import views
 
 
 urlpatterns = [
-    path('own_post/<int:pk>/', views.OwnPostView.as_view(), name='own-post'),
-    path('others_post/<int:pk>/', views.OtherPostView.as_view(), name='others-post'),
 
 
 
+    #post
+    path('create_post/', views.CreatePost.as_view(), name='create_post'),
+    path('update_post/', views.UpdatePost.as_view(), name='update_post'),
+    path('delete_post/', views.DeletePost.as_view(), name='delete_post'),
+    path('get_post/', views.GetPost.as_view(), name='get_post'),
 
+    #feed
+    path('self_time_line/', views.SelfTimeline.as_view(), name='self_time_line'),
     
 
 ]

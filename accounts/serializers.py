@@ -109,3 +109,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 
+class UserDetailSerailizer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=False)
+
+    def validate(self, data):
+        user_id = data.get('user_id')
+
+        if user_id is None:
+            raise serializers.ValidationError("user_id not present")
+
+        try:
+            user_object = User.objects.get(id=user_id)
+        except Exception as e:
+            raise serializers.ValidationError("user not found")
+
+
+        self.user_object = user_object
+        return data
