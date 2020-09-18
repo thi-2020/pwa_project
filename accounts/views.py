@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthentic
 from django.conf import settings
 
 from accounts.utils import (get_tokens_for_user,check_invitaion_validity,send_mail_to_invite,
-mutual_friend_list,connection_status)
+mutual_friend_list,connection_status,is_connection,is_following)
 
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes,force_text
@@ -124,42 +124,59 @@ class GetProfileInfo(APIView):
         }
         return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
-
 class GetOtherProfileInfo(APIView):
     def post(self,request):
-
+        requesting_user = request.user
         data = request.data
-        user_id = data.get('user_id',None)
-
-        if user_id is None:
-            return Response({"success":False,"error":{"message":"user_id not present"}},status=404)
-
-
+        
+        user_id = data.get('user_id')
         try:
-            other_user = User.objects.get(id=user_id)
+            user = User.objects.get(id=user_id)
         except Exception as e:
-            return Response({"success":False,"error":{"message":"user not found"}},status=404)
-            
-        
-        
+            return Response({"msg":"user not found"},status=404)  
 
-        profile_photo = other_user.profile_photo.url
-        cover_photo = other_user.cover_photo.url
-        dob = other_user.dob
-        
+        if requesting_user==user:
+            return Response({"msg":"user can not query themselves"},status=404) 
+
         
         full_name = str(user.first_name)+" " +str(user.last_name)
+        profile_photo = user.profile_photo.url
+        
+        dob = user.dob
+
+        cover_photo = user.cover_photo
+
+        if cover_photo.name!=u'':
+            print("length of name is ",len(cover_photo.name))
+            cover_photo = cover_photo.url
+        else:
+            cover_photo = None    
+
+
+        is_following_resp = is_following(requesting_user,user)
+
+
+
+
+  
+        connection_status_resp = connection_status(requesting_user,user)
+
+
 
         to_send = {
             "profile_photo":profile_photo,
             "full_name":full_name,
             "cover_photo":cover_photo,
-            "dob":dob
+            "dob":dob,
+            "current_city":user.current_city,
+            "no_of_friend":user.no_of_friend,
+            "no_of_followers":user.no_of_followers,
+            "no_of_following":user.no_of_following,
+            "connection_status":connection_status_resp,
+            "is_following":is_following_resp,
+            "is_connections_visible":True,
         }
-
-
-        return Response({"success":True,"data":{'people':peopl},"msg":"ok"},status=200)
-
+        return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
 
 

@@ -158,6 +158,24 @@ def send_mail_to_invite(sender,email,key,invitation_obj_id):
 
 
 
+def is_following(from_user,to_user):
+
+    try:
+        Follow.objects.get(from_user=from_user,to_user=to_user)
+        return True
+    except Exception as e:
+        return False
+
+
+def is_connection(from_user,to_user):
+
+    try:
+        Connection.objects.get(from_user=from_user,to_user=to_user)
+        return True
+    except Exception as e:
+        return False
+
+
 def mutual_friend_list(user1,user2):
 
     list1 = Connection.objects.filter(from_user=user1).values_list('to_user',flat=True) 

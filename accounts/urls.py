@@ -52,7 +52,7 @@ urlpatterns = [
     #profile_api
     path('profile/get_profile_info/',views.GetProfileInfo.as_view(), name='get_profile_info'),
     path('profile/get_other_profile_info/',views.GetOtherProfileInfo.as_view(), name='get_other_profile_info'),
-    # to do
+            # to do
     path('profile/update_profile_photo/',views.GetOtherProfileInfo.as_view(), name='get_other_profile_info'),
     path('profile/update_cover_photo/',views.GetOtherProfileInfo.as_view(), name='get_other_profile_info'),
     path('profile/update_profile_info/',views.GetOtherProfileInfo.as_view(), name='get_other_profile_info'),
