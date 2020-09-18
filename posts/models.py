@@ -70,7 +70,10 @@ class Activity(BaseModel):
     activity_type = models.CharField(max_length=50,choices = types,null=True,blank=True)
     like = models.ForeignKey(Like,on_delete=models.CASCADE,null=True,blank=True)
     comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True)
-    post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,null=True,blank=True)
+    create_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,
+            related_name = 'create_post_activity',null=True,blank=True)
+    share_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,
+            related_name = 'share_post_activity',null=True,blank=True)
 
 
 

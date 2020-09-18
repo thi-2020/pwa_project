@@ -139,7 +139,7 @@ class SelfTimeline(APIView,PaginationHandlerMixin):
         for activity_obj in page:
             user = activity_obj.user
             activity_type = activity_obj.activity_type
-            thumbnail = user.userprofile.profile_photo.url
+            thumbnail = user.profile_photo.url
 
             post_obj = activity_obj.post
             
@@ -324,9 +324,6 @@ class CreateComment(APIView):
         if serializer.is_valid():
             user = request.user    
             data = serializer.data 
-
-
-
             
             to_send = {"post_id": post_obj.id}
             return Response({"success":True,"data":to_send,"msg":"ok"},status=200)

@@ -10,7 +10,8 @@ class UserAdmin(DjangoUserAdmin):
     list_display = ("id",'email','username','phone','date_joined','is_staff','first_name','last_name')
     # here in fieldsets we add the fields which users can see in admin panel
     fieldsets = (
-        (None, {'fields': ('email','username','password','phone','first_name','last_name')}),
+        (None, {'fields': ('email','username','password','phone','first_name','last_name',
+        'profile_photo','cover_photo','dob','current_city','no_of_friend','no_of_followers','no_of_following')}),
         # ('Personal info', {'fields': ('',)}),
         # ('Permissions', {'fields': ('',)}),
     )
@@ -25,6 +26,10 @@ class UserAdmin(DjangoUserAdmin):
     )
     ordering = ('-date_joined',)
     search_fields = ('id','email','username')
+
+
+
+
     # search_fields = ('id','email','user_profile__phone_number','username')
     
     # def phone(self,obj):
@@ -35,21 +40,6 @@ class UserAdmin(DjangoUserAdmin):
 
 
 
-class UserProfileResource(resources.ModelResource):
-    user = fields.Field(
-        column_name='user',
-        attribute='user',
-        widget=ForeignKeyWidget(User, 'email'))
-    
-    class Meta:
-        model = UserProfile
-        export_order = ('id', 'user', )
-        
-class UserProfileAdmin(ExportActionModelAdmin):
-    list_display = ['id','user',]
-    search_fields = ('id','user__email',)
-    list_display_links  = ('id','user',)
-    resource_class = UserProfileResource
 
 
     # list_display = ['id','wallet',]
@@ -76,10 +66,23 @@ class InvitationAdmin(admin.ModelAdmin):
 class ConnectionAdmin(admin.ModelAdmin):
     list_display = ['id','from_user','to_user',]
 
+class VisibilitySettingsAdmin(admin.ModelAdmin):
+    list_display = ['user','who_can_see_your_likes_and_comments',
+                    'who_can_see_your_connection_list']
 
+
+class ConnectionRequestAdmin(admin.ModelAdmin):
+    list_display = ['id','from_user','to_user','rejected']
+
+
+
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ['id','from_user','to_user']
 
 admin.site.register(User,UserAdmin)
-admin.site.register(FriendshipRequest)
-admin.site.register(UserProfile,UserProfileAdmin)
+admin.site.register(ConnectionRequest,ConnectionRequestAdmin)
+admin.site.register(VisibilitySettings,VisibilitySettingsAdmin)
+
 admin.site.register(Invitation,InvitationAdmin)
 admin.site.register(Connection,ConnectionAdmin)
+admin.site.register(Follow,FollowAdmin)

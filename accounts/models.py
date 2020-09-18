@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
 class UserManager(BaseUserManager):
     """Define a model manager for User model with no username field."""
     use_in_migrations = True
@@ -45,20 +45,7 @@ class User(AbstractUser):
 
     email = models.EmailField()
     phone = models.CharField(max_length=10,blank=True,null=True)
-    REQUIRED_FIELDS = []
 
-    objects = UserManager()
-
-    def __str__(self):
-        return str(self.username)
-
-
-
-
-
-
-class UserProfile(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='userprofile')
     profile_photo = models.FileField(upload_to='image/profile_photo/', null=True,blank=True, 
         verbose_name="profile_photo",
         default='/image/profile_photo/default.png')
@@ -73,6 +60,21 @@ class UserProfile(models.Model):
     no_of_friend = models.IntegerField(default=0)
     no_of_followers = models.IntegerField(default=0)
     no_of_following = models.IntegerField(default=0)
+
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    def __str__(self):
+        return str(self.username)
+
+
+
+
+
+
+
+
 
     
     # def save(self, *args, **kwargs):
@@ -157,17 +159,23 @@ class Connection(BaseModel):
     # accepted = models.BooleanField(default=False)
     # rejected = models.DateTimeField(blank=True, null=True)
 
+    def clean(self, *args, **kwargs):
+        if self.to_user == self.from_user:
+            raise ValidationError("Users cannot be friends with themselves.")
+
+
+
     class Meta:
         verbose_name = ("Connection")
         verbose_name_plural = ("Connections")
         unique_together = ("from_user", "to_user")
 
 
-class FriendshipRequest(models.Model):
+class ConnectionRequest(models.Model):
     """ Model to represent friendship requests """
 
-    from_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="friendship_requests_sent")
-    to_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="friendship_requests_received",)
+    from_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="connection_requests_sent")
+    to_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="connection_requests_received",)
 
     message = models.TextField(("Message"), blank=True)
 
@@ -176,15 +184,15 @@ class FriendshipRequest(models.Model):
     viewed = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        verbose_name = ("Friendship Request")
-        verbose_name_plural = ("Friendship Requests")
+        verbose_name = ("Connection Request")
+        verbose_name_plural = ("Connection Requests")
         unique_together = ("from_user", "to_user")
 
     def __str__(self):
         return "%s" % self.from_user_id
 
     def accept(self):
-        """ Accept this friendship request """
+        """ Accept this connection request """
         Connection.objects.create(from_user=self.from_user, to_user=self.to_user)
 
         Connection.objects.create(from_user=self.to_user, to_user=self.from_user)
@@ -192,24 +200,24 @@ class FriendshipRequest(models.Model):
         # friendship_request_accepted.send(
         #     sender=self, from_user=self.from_user, to_user=self.to_user
         # )
-        from_user.userprofile.no_of_friend += 1
-        from_user.userprofile.save()
+        from_user.no_of_friend += 1
+        from_user.save()
 
-        to_user.userprofile.no_of_friend += 1
-        to_user.userprofile.save()
+        to_user.no_of_friend += 1
+        to_user.save()
 
 
         self.delete()
 
         # Delete any reverse requests
-        FriendshipRequest.objects.filter(from_user=self.to_user, to_user=self.from_user).delete()
+        ConnectionRequest.objects.filter(from_user=self.to_user, to_user=self.from_user).delete()
 
 
 
         return True
 
     def reject(self):
-        """ reject this friendship request """
+        """ reject this connection request """
         self.rejected = timezone.now()
         self.save()
         # friendship_request_rejected.send(sender=self)
@@ -233,16 +241,34 @@ class FriendshipRequest(models.Model):
 
 
 
+class Follow(models.Model):
+    """ Model to represent Following relationships """
+    from_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="following")
+    to_user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="followers",)
+    created = models.DateTimeField(default=timezone.now)
+    
 
+    class Meta:
+        verbose_name = ("Following Relationship")
+        verbose_name_plural = ("Following Relationships")
+        unique_together = ("from_user", "to_user")
+
+
+
+    def clean(self, *args, **kwargs):
+        if self.from_user == self.to_user:
+            raise ValidationError("Users cannot follow themselves.")
+        super(Follow, self).save(*args, **kwargs)
 
 
 
 class VisibilitySettings(BaseModel):
+
     types = [
-    ('connections','connections'),
+    ('connections only','connections only'),
     ('everyone','everyone'),
-    ('myself','myself'),
-    ('connection_and_followers','connection_and_followers')
+    ('myself only','myself only'),
+    ('connections and followers only','connections and followers only')
     ]
     user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='visibility_settings')
 
@@ -251,8 +277,15 @@ class VisibilitySettings(BaseModel):
         choices=types,
         default="everyone")
 
-    who_can_see_connection_list = models.CharField(        
+    who_can_see_your_connection_list = models.CharField(        
         max_length=50,
         choices=types,
         default="everyone")
 
+
+    # def get_visibilty_options(self): 
+    #     print("came here")
+    #     return self.types
+
+    class Meta:
+        verbose_name_plural = ("Visibility Settings")

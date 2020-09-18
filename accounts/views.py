@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthentic
 from django.conf import settings
 
 from accounts.utils import (get_tokens_for_user,check_invitaion_validity,send_mail_to_invite,
-mutual_friend_list,friendhip_status)
+mutual_friend_list,connection_status)
 
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes,force_text
@@ -59,15 +59,17 @@ class UserCreate(APIView):
 
 
             user= User.objects.create_user(email=email,password=password,username=username,
-            last_name=last_name,first_name=first_name,phone=phone)
+            last_name=last_name,first_name=first_name,phone=phone,dob=dob)
             
-            user_profile = UserProfile.objects.create(user=user,dob=dob)
+            
 
             invitation_obj = serializer.invitation_obj
             invitation_obj.accepted = True
             invitation_obj.save()
 
             sender = invitation_obj.sender
+
+            visi_obj = VisibilitySettings.objects.create(user=user)
 
             if sender.is_staff is False:
                 connection_object1 = Connection.objects.create(from_user=sender,to_user=user)
@@ -79,7 +81,6 @@ class UserCreate(APIView):
                 json_data = serializer.data
 
                 json_data['user_id'] = user.id
-                json_data['user_profile_id'] = user_profile.id
                 json_data['access'] = token['access']
                 json_data['refresh'] = token['refresh']
                 return Response({"success":True,'data':json_data,"msg":None}, status=status.HTTP_201_CREATED)
@@ -90,14 +91,14 @@ class UserCreate(APIView):
 class GetProfileInfo(APIView):
     def get(self,request):
         user = request.user
-        user_profile = user.userprofile
+        
         
         full_name = str(user.first_name)+" " +str(user.last_name)
-        profile_photo = user_profile.profile_photo.url
+        profile_photo = user.profile_photo.url
         
-        dob = user_profile.dob
+        dob = user.dob
 
-        cover_photo = user_profile.cover_photo
+        cover_photo = user.cover_photo
 
         if cover_photo.name!=u'':
             print("length of name is ",len(cover_photo.name))
@@ -115,11 +116,11 @@ class GetProfileInfo(APIView):
             "full_name":full_name,
             "cover_photo":cover_photo,
             "dob":dob,
-            "current_city":user_profile.current_city,
-            "no_of_friend":user_profile.no_of_friend,
-            "no_of_followers":user_profile.no_of_followers,
-            "no_of_following":user_profile.no_of_following,
-            "complete_status":user_profile.complete_status,
+            "current_city":user.current_city,
+            "no_of_friend":user.no_of_friend,
+            "no_of_followers":user.no_of_followers,
+            "no_of_following":user.no_of_following,
+            "complete_status":user.complete_status,
         }
         return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
@@ -139,12 +140,12 @@ class GetOtherProfileInfo(APIView):
         except Exception as e:
             return Response({"success":False,"error":{"message":"user not found"}},status=404)
             
-        user_profile = user.userprofile
+        
         
 
-        profile_photo = user_profile.profile_photo.url
-        cover_photo = user_profile.cover_photo.url
-        dob = user_profile.dob
+        profile_photo = other_user.profile_photo.url
+        cover_photo = other_user.cover_photo.url
+        dob = other_user.dob
         
         
         full_name = str(user.first_name)+" " +str(user.last_name)
@@ -285,19 +286,91 @@ class BasicPagination(PageNumberPagination):
     page_size_query_param = 'limit'
     page_size = 5
 
-class GetReceivedFriendRequestList(APIView,PaginationHandlerMixin):
+class GetReceivedConnectionRequestList(APIView,PaginationHandlerMixin):
     pagination_class = BasicPagination
 
     def get(self, request, format=None):
         user = request.user
-        request_list = FriendshipRequest.objects.filter(to_user=user,rejected__isnull=True)
+        request_list = ConnectionRequest.objects.filter(to_user=user,rejected__isnull=True)
 
         new_queryset = request_list.order_by('-created')
         page = self.paginate_queryset(new_queryset)
         to_send = []
 
         for obj in page:
-            thumbnail = obj.from_user.userprofile.profile_photo.url
+            thumbnail = obj.from_user.profile_photo.url
+
+            full_name = str(obj.from_user.first_name)+" " +str(obj.from_user.last_name)
+
+            mutual_connections_list = mutual_friend_list(user,obj.from_user)
+            mutual_connections = len(mutual_connections_list)
+            user_id = obj.from_user.id
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                "mutual_connections":mutual_connections,
+                "user_id":user_id,
+                "request_id":obj.id,
+
+
+            }
+            to_send.append(to_add)
+        print("to_send is ",to_send)
+        to_send = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+        return Response(to_send.data,status=200)
+
+
+
+class GetSentConnectionRequestList(APIView,PaginationHandlerMixin):
+    pagination_class = BasicPagination
+
+    def get(self, request, format=None):
+        user = request.user
+        request_list = ConnectionRequest.objects.filter(from_user=user)
+
+        new_queryset = request_list.order_by('-created')
+        page = self.paginate_queryset(new_queryset)
+        to_send = []
+
+        for obj in page:
+            thumbnail = obj.to_user.profile_photo.url
+
+            full_name = str(obj.to_user.first_name)+" " +str(obj.to_user.last_name)
+
+            mutual_connections_list = mutual_friend_list(user,obj.to_user)
+            mutual_connections = len(mutual_connections_list)
+            user_id = obj.to_user.id
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                "mutual_connections":mutual_connections,
+                "user_id":user_id,
+                "request_id":obj.id,
+
+
+            }
+            to_send.append(to_add)
+        print("to_send is ",to_send)
+        to_send = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+        return Response(to_send.data,status=200)
+
+
+
+class GetSenTFriendRequestList(APIView,PaginationHandlerMixin):
+    pagination_class = BasicPagination
+
+    def get(self, request, format=None):
+        user = request.user
+        request_list = ConnectionRequest.objects.filter(from_user=user,rejected__isnull=True)
+
+        new_queryset = request_list.order_by('-created')
+        page = self.paginate_queryset(new_queryset)
+        to_send = []
+
+        for obj in page:
+            thumbnail = obj.from_user.profile_photo.url
 
             full_name = str(obj.from_user.first_name)+" " +str(obj.from_user.last_name)
 
@@ -340,7 +413,7 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
 
         # to_send = []
         # # for obj in page:
-        # #     thumbnail = obj.to_user.userprofile.thumbnail.url
+        # #     thumbnail = obj.to_user.thumbnail.url
 
         # #     full_name = str(obj.to_user.first_name)+" " +str(obj.to_user.last_name)
 
@@ -362,7 +435,7 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
         for user_id in page:
             user = User.objects.get(id=user_id)
 
-            thumbnail = user.userprofile.profile_photo.url
+            thumbnail = user.profile_photo.url
             
             full_name = str(user.first_name)+" " +str(user.last_name)
             to_add = {
@@ -381,15 +454,8 @@ class GetMutualConnectionList(APIView,PaginationHandlerMixin):
         return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
       
 
-def deleteconnection(request):
 
-    connection_list = Connection.objects.all()
-    for connection in connection_list:
-        connection.delete()
-    return HttpResponse("deleted")
-
-
-class GetAllFriendsList(APIView,PaginationHandlerMixin):
+class GetAllConnectionsList(APIView,PaginationHandlerMixin):
     page_size = 1
     
     pagination_class = BasicPagination
@@ -440,16 +506,17 @@ class GetAllFriendsList(APIView,PaginationHandlerMixin):
         page = self.paginate_queryset(new_queryset)
         to_send = []
         for obj in page:
-            thumbnail = obj.to_user.userprofile.profile_photo.url
+            thumbnail = obj.to_user.profile_photo.url
 
             full_name = str(obj.to_user.first_name)+" " +str(obj.to_user.last_name)
 
-            mutual_connections_list = mutual_friend_list(user,obj.to_user)
-            mutual_connections = len(mutual_connections_list)
+            # mutual_connections_list = mutual_friend_list(user,obj.to_user)
+            # mutual_connections = len(mutual_connections_list)
             to_add = {
                 "thumbnail":thumbnail,
                 "full_name":full_name,
-                "mutual_connections":mutual_connections,
+                # "mutual_connections":mutual_connections,
+                "user_id":obj.to_user.id,
 
 
             }
@@ -461,7 +528,48 @@ class GetAllFriendsList(APIView,PaginationHandlerMixin):
         return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
 
 
-class HandleFriendRequest(APIView):
+class GetOthersAllConnectionsList(APIView,PaginationHandlerMixin):
+    page_size = 1
+    
+    pagination_class = BasicPagination
+    
+    def post(self, request, format=None):
+        user = request.user
+        
+        data = request.data
+        user_id = data.get('user_id')
+        try:
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"msg":"user not found"},status=404)           
+        new_queryset =  Connection.objects.filter(from_user=user)
+        new_queryset = new_queryset.order_by('-created_at')
+        page = self.paginate_queryset(new_queryset)
+        to_send = []
+        for obj in page:
+            thumbnail = obj.to_user.profile_photo.url
+
+            full_name = str(obj.to_user.first_name)+" " +str(obj.to_user.last_name)
+
+            # mutual_connections_list = mutual_friend_list(user,obj.to_user)
+            # mutual_connections = len(mutual_connections_list)
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                # "mutual_connections":mutual_connections,
+                "user_id":obj.to_user.id,
+
+
+            }
+            to_send.append(to_add)
+        print("to_send is ",to_send)
+        to_send = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+        
+        return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+
+
+class HandleConnectionRequest(APIView):
 
     def post(self, request, format=None):
         user = request.user
@@ -470,7 +578,7 @@ class HandleFriendRequest(APIView):
         request_answer = data.get("request_answer")
 
         try:
-            friendship_request_object = FriendshipRequest.objects.get(id=request_id)
+            friendship_request_object = ConnectionRequest.objects.get(id=request_id)
             if friendship_request_object.rejected is not None:
                 return Response({"success":False,"error":{"message":"Already Rejected"}},status=403)
 
@@ -499,6 +607,83 @@ class HandleFriendRequest(APIView):
 
 
 
+class WithdrawRequest(APIView):
+
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        request_id = data.get("request_id")
+        request_answer = data.get("request_answer")
+
+        try:
+            friendship_request_object = ConnectionRequest.objects.get(id=request_id)
+            if friendship_request_object.rejected is not None:
+                return Response({"success":False,"error":{"message":"Already Rejected"}},status=403)
+
+        except Exception as e:
+            print("error is ",e)
+            return Response({"success":False,"error":{"message":"request not found"}},status=404)
+            
+
+        if friendship_request_object.to_user != user:
+            return Response({"success":False,"error":{"message":"not authorized"}},status=403)
+           
+
+        if request_answer != "rejected" and request_answer != "accepted":
+            return Response({"success":False,"error":{"message":"not authorized"}},status=403)
+            
+
+
+        if request_answer == "accepted":
+            friendship_request_object.accept()
+
+        if request_answer == "rejected":
+            friendship_request_object.reject()
+
+        return Response({"success":True,"data":{},"msg":"ok"},status=200)
+
+
+
+
+
+
+class DeleteConnection(APIView):
+
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        user_id = data.get("user_id")
+
+        try:
+            other_user = User.objects.get(id=user_id)
+        except Exception as e:
+            print("error is",e)
+            return Response({"msg":"user not found"},status=404)
+
+        try:
+            qs = (
+                Connection.objects.filter(
+                    Q(to_user=other_user, from_user=user)
+                    | Q(to_user=user, from_user=other_user)
+                ).distinct().all())
+
+            print("qs is",qs)
+            if qs.exists():
+
+                qs.delete()
+            else:
+                return Response({"success":False,"error":{"message":"Connection Does Not Exist"}},status=404)
+
+
+        except Connection.DoesNotExist:
+            return Response({"success":False,"error":{"message":"Connection Does Not Exist"}},status=404)
+        
+
+
+
+        return Response({"success":True,"data":{},"msg":"connection deleted successfully"},status=200)
+
+
 class SearchBarResults(APIView,PaginationHandlerMixin):
     pagination_class = BasicPagination
     def get(self, request, format=None):
@@ -522,8 +707,8 @@ class SearchBarResults(APIView,PaginationHandlerMixin):
         page = self.paginate_queryset(user_list)
         to_send = []
         for obj in page:
-            friendhip_status_result = friendhip_status(user,obj)
-            thumbnail = obj.userprofile.profile_photo.url
+            connection_status_result = connection_status(user,obj)
+            thumbnail = obj.profile_photo.url
 
             full_name = str(obj.first_name)+" " +str(obj.last_name)
 
@@ -534,7 +719,7 @@ class SearchBarResults(APIView,PaginationHandlerMixin):
                 "thumbnail":thumbnail,
                 "full_name":full_name,
                 "mutual_connections":mutual_connections,
-                "friendship_status":friendhip_status_result,
+                "connection_status":connection_status_result,
                 "user_id":obj.id
 
             }
@@ -548,7 +733,7 @@ class SearchBarResults(APIView,PaginationHandlerMixin):
         return Response({"success":True,"data":{'people':people_search_result.data},"msg":"ok"},status=200)
 
 
-class SendFriendRequest(APIView):
+class SendConnectionRequest(APIView):
     def post(self, request, format=None):
         user = request.user
         data = request.data
@@ -560,14 +745,252 @@ class SendFriendRequest(APIView):
         except Exception as e:
             return Response({"success":False,"error":{"message":"User not found"}},status=404)
 
-        request_object, created = FriendshipRequest.objects.get_or_create(from_user=user,to_user=to_user)
+        if to_user == user:
+            return Response({"success":False,"error":{"message":"Users cannot be friends with themselves."}},status=404)
+
+
+        request_object, created = ConnectionRequest.objects.get_or_create(from_user=user,to_user=to_user)
 
 
 
 
         return Response({"success":True,"data":{'request_id':request_object.id},"msg":"ok"},status=200)
 
-  
 
 
 
+class VisibilitySettingsGet(APIView):
+    def get(self, request, format=None):
+        user = request.user
+        setting_obj = VisibilitySettings.objects.get(user=user)
+
+
+        to_send = {
+            "who_can_see_your_likes_and_comments":setting_obj.who_can_see_your_likes_and_comments,
+            "who_can_see_your_connection_list":setting_obj.who_can_see_your_connection_list
+            }
+
+        return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
+
+class VisibilitySettingsUpdate(APIView):
+    def post(self, request, format=None):
+        user = request.user
+        setting_obj = VisibilitySettings.objects.get(user=user)
+        types = VisibilitySettings().types
+        types = [item[0] for item in types]
+        data = request.data
+
+        who_can_see_your_likes_and_comments = data.get('who_can_see_your_likes_and_comments',None)
+
+
+        if who_can_see_your_likes_and_comments is not None:
+
+            if who_can_see_your_likes_and_comments not in types:
+                msg = "wrong entry for who_can_see_your_likes_and_comments given"
+                return Response({"success":False,"error":{"message":msg}},status=404)
+
+
+            setting_obj.who_can_see_your_likes_and_comments = who_can_see_your_likes_and_comments
+            setting_obj.save()
+
+
+        who_can_see_your_connection_list = data.get('who_can_see_your_connection_list',None)
+        if who_can_see_your_connection_list is not None:
+            if who_can_see_your_likes_and_comments not in types:
+                msg = "wrong entry for who_can_see_your_connection_list given"
+                return Response({"success":False,"error":{"message":msg}},status=404)
+            setting_obj.who_can_see_your_connection_list = who_can_see_your_connection_list
+            setting_obj.save()
+
+
+        return Response({"success":True,"data":{},"msg":"updated sucessfully"},status=200)
+
+
+
+class VisibilitySettingsOptionsList(APIView):
+    permission_classes = [AllowAny,]
+    
+    def get(self, request,*args,**kwargs):
+        print("came in @602")
+        # types = "ss"
+        types = VisibilitySettings().types
+        # types = VisibilitySettings().get_visibilty_options()
+        print("types is",types)
+        types = [item[0] for item in types]
+        print("types is",types)
+
+        return Response({"success":True,"data":{'types':types},"msg":"ok"},status=200)
+
+
+
+    def followers(self, user):
+        """ Return a list of all followers """
+        key = cache_key("followers", user.pk)
+        followers = cache.get(key)
+
+        if followers is None:
+            qs = Follow.objects.filter(followee=user).all()
+            followers = [u.follower for u in qs]
+            cache.set(key, followers)
+
+        return followers
+
+    def following(self, user):
+        """ Return a list of all users the given user follows """
+        key = cache_key("following", user.pk)
+        following = cache.get(key)
+
+        if following is None:
+            qs = Follow.objects.filter(follower=user).all()
+            following = [u.followee for u in qs]
+            cache.set(key, following)
+
+        return following
+
+    def add_follower(self, follower, followee):
+        """ Create 'follower' follows 'followee' relationship """
+        if follower == followee:
+            raise ValidationError("Users cannot follow themselves")
+
+        relation, created = Follow.objects.get_or_create(
+            follower=follower, followee=followee
+        )
+
+        if created is False:
+            raise AlreadyExistsError(
+                "User '%s' already follows '%s'" % (follower, followee)
+            )
+
+        follower_created.send(sender=self, follower=follower)
+        followee_created.send(sender=self, followee=followee)
+        following_created.send(sender=self, following=relation)
+
+        bust_cache("followers", followee.pk)
+        bust_cache("following", follower.pk)
+
+        return relation
+
+    def remove_follower(self, follower, followee):
+        """ Remove 'follower' follows 'followee' relationship """
+        try:
+            rel = Follow.objects.get(follower=follower, followee=followee)
+            follower_removed.send(sender=rel, follower=rel.follower)
+            followee_removed.send(sender=rel, followee=rel.followee)
+            following_removed.send(sender=rel, following=rel)
+            rel.delete()
+            bust_cache("followers", followee.pk)
+            bust_cache("following", follower.pk)
+            return True
+        except Follow.DoesNotExist:
+            return False
+
+    def follows(self, follower, followee):
+        """ Does follower follow followee? Smartly uses caches if exists """
+        followers = cache.get(cache_key("following", follower.pk))
+        following = cache.get(cache_key("followers", followee.pk))
+
+        if followers and followee in followers:
+            return True
+        elif following and follower in following:
+            return True
+        else:
+            return Follow.objects.filter(follower=follower, followee=followee).exists()
+
+
+
+
+class GetAllFollowersList(APIView,PaginationHandlerMixin):
+    page_size = 1
+    
+    pagination_class = BasicPagination
+    
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        user_id = data.get('user_id')
+        try:
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"msg":"user not found"},status=404)                
+        new_queryset =  Follow.objects.filter(to_user=user)
+        
+
+        new_queryset = new_queryset.order_by('-created')
+        page = self.paginate_queryset(new_queryset)
+        to_send = []
+        for obj in page:
+            thumbnail = obj.from_user.profile_photo.url
+
+            full_name = str(obj.from_user.first_name)+" " +str(obj.from_user.last_name)
+
+            # mutual_connections_list = mutual_friend_list(user,obj.to_user)
+            # mutual_connections = len(mutual_connections_list)
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                # "mutual_connections":mutual_connections,
+                "user_id":obj.from_user.id,
+
+
+            }
+            to_send.append(to_add)
+        print("to_send is ",to_send)
+        to_send = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+        
+        return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+
+
+class GetAllFollowingList(APIView,PaginationHandlerMixin):
+    page_size = 1
+    
+    pagination_class = BasicPagination
+    
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+        user_id = data.get('user_id')
+        try:
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"msg":"user not found"},status=404)                
+        new_queryset =  Follow.objects.filter(from_user=user)                
+        
+        
+
+        new_queryset = new_queryset.order_by('-created')
+        page = self.paginate_queryset(new_queryset)
+        to_send = []
+        for obj in page:
+            thumbnail = obj.to_user.profile_photo.url
+
+            full_name = str(obj.to_user.first_name)+" " +str(obj.to_user.last_name)
+
+            # mutual_connections_list = mutual_friend_list(user,obj.to_user)
+            # mutual_connections = len(mutual_connections_list)
+            to_add = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                # "mutual_connections":mutual_connections,
+                "user_id":obj.to_user.id,
+
+
+            }
+            to_send.append(to_add)
+        print("to_send is ",to_send)
+        to_send = self.get_paginated_response(to_send)
+        print("to_send is ",to_send)
+        
+        return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+
+
+def update_visibilty_settings(APIView):
+
+    users_list = User.objects.all()
+
+    for user in users_list:
+        try:
+            obj = VisibilitySettings.objects.create(user=user)
+        except Exception as e:
+            continue
+    return HttpResponse("done")

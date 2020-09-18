@@ -180,16 +180,16 @@ def mutual_friend_list(user1,user2):
     return result_list
 
 
-def friendhip_status(from_user,to_user):
+def connection_status(from_user,to_user):
 
     if Connection.objects.filter(from_user=from_user,to_user=to_user).exists():
-        return "friend"
+        return "connected"
     
 
-    if FriendshipRequest.objects.filter(from_user=from_user,to_user=to_user).exists():
-        return "friend_request_sent"
+    if ConnectionRequest.objects.filter(from_user=from_user,to_user=to_user).exists():
+        return "connection request done"
 
-    return "not_friend"
+    return "not connected"
 
 
 

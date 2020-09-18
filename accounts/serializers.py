@@ -99,16 +99,6 @@ class LoginSerializer(serializers.Serializer):
 
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = UserProfile
-        fields = "__all__"
-        read_only_fields = ['user']
-
-
-
-
 class UserDetailSerailizer(serializers.Serializer):
     user_id = serializers.IntegerField(required=False)
 
