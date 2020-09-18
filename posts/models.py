@@ -17,6 +17,7 @@ class BasePost(BaseModel):
     no_of_comments = models.IntegerField(default=0)
     is_edited = models.BooleanField(default=False)
     is_comment_disabled = models.BooleanField(default=False)
+    version = models.IntegerField(default=1)
 
     class Meta:
         abstract = True
@@ -34,6 +35,12 @@ class FeedPost(BasePost):
     visibilty_status = models.CharField(
         max_length=50,choices = privacy_types,null=True,blank=True)
 
+    def __str__(self):
+        # return str(self.user) 
+        return str(self.user) + " " + "post_id: "+str(self.id)  
+
+
+
 class GroupPost(BasePost):    
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='group_posts')
   
@@ -41,18 +48,37 @@ class GroupPost(BasePost):
 
 class Like(BaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='likes')
-    normal_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='likes')
-    group_post = models.ForeignKey(GroupPost,on_delete=models.CASCADE,related_name='likes')
+    feed_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='likes',
+        null=True,blank=True)
+    group_post = models.ForeignKey(GroupPost,on_delete=models.CASCADE,related_name='likes',
+        null=True,blank=True)
+
+
+    class Meta:
+        unique_together = (('user', 'feed_post'),
+                           ('user', 'feed_post'))
+
+    def __str__(self):
+        return str(self.user)
 
 
 class Comment(BaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='comments')
-    normal_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='comments',
+    feed_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='comments',
         null=True,blank=True)
     group_post = models.ForeignKey(GroupPost,on_delete=models.CASCADE,related_name='comments'
         ,null=True,blank=True)
     content = models.TextField()
     is_edited = models.BooleanField(default=False)
+    version = models.IntegerField(default=1)
+
+
+    class Meta:
+        unique_together = (('user', 'feed_post'),
+                           ('user', 'feed_post'))
+
+    def __str__(self):
+        return self.user
 
 
 
