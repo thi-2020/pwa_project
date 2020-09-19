@@ -25,6 +25,12 @@ urlpatterns = [
 
 
 
+    path('likes/like_a_post/', views.LikePost.as_view(), name='like_a_post'),
+    path('likes/unlike_a_post/', views.UnlikePost.as_view(), name='unlike_a_post'),
+    path('likes/list_of_likes_on_post/', views.LikesList.as_view(), name='list of likes on post'),
+
+
+
     #like
 
 ]

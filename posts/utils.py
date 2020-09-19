@@ -15,3 +15,12 @@ def is_feed_post_liked(user,post_obj):
     else:
         return False
 
+def is_group_post_liked(user,post_obj):
+    # post_obj = FeedPost.objects.get(id = post_id)
+
+    res = Like.objects.filter(user=user,group_post=post_obj).exists()
+    
+    if res is True:
+        return True
+    else:
+        return False

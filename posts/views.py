@@ -24,7 +24,7 @@ import json
 from rest_framework.parsers import FormParser, MultiPartParser
 from accounts.pagination import PaginationHandlerMixin
 from rest_framework.pagination import PageNumberPagination
-from posts.utils import is_feed_post_liked
+from posts.utils import is_feed_post_liked,is_group_post_liked
 
 
 class BasicPagination(PageNumberPagination):
@@ -102,13 +102,16 @@ class CreatePost(APIView):
             data = serializer.data 
             content = data.get('content',None)
             visibilty_status = data.get('visibilty_status','everyone')
+            post_type = data.get('post_type','everyone')
             image = request.data.get('image',None)
+        
 
             print("image is",image)
             post_obj = FeedPost.objects.create(user=user,content=content,visibilty_status=visibilty_status,
                 image = image)
             
-            activity_obj = Activity.objects.create(user=user,post_id=post_obj.id,activity_type='create_feed_post')
+            activity_obj = Activity.objects.create(user=user,post_id=post_obj.id,activity_type='create_post',
+                    post_type=post_type)
             
 
             to_send = {"post_id": post_obj.id}
@@ -375,22 +378,45 @@ class NewsFeed(APIView,PaginationHandlerMixin):
 
 
 
-class LikesList(APIView):
+class LikesList(APIView,PaginationHandlerMixin):
+    pagination_class = BasicPagination
     def post(self,request):
 
-        serializer = UserDetailSerailizer(data=request.data)
+        serializer = PostDetailSerializer(data=request.data)
 
         if serializer.is_valid():
             user = request.user    
             data = serializer.data
             post_obj = serializer.post_obj
-
- 
+            like_list = post_obj.likes.all().order_by('-created_at')
 
 
             
-            # posts = FeedPost.objects.filter(user=user,vis)
-            return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
+            page = self.paginate_queryset(like_list)
+            to_send = []
+            print("page is",page)
+
+            for like_obj in page:
+                user = like_obj.user
+
+                full_name = str(user.first_name)+" " +str(user.last_name)
+                thumbnail = user.profile_photo.url
+           
+                to_add = {
+                    "thumbnail":thumbnail,
+                    "full_name":full_name,
+                    "user_id":user.id,
+                    
+                }
+
+                to_send.append(to_add)
+
+
+            print("to_send is",to_send)
+            to_send = self.get_paginated_response(to_send)
+            print("to_send is",to_send)
+
+            return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
 
         if serializer.errors:          
             errors = serializer.errors
@@ -398,6 +424,69 @@ class LikesList(APIView):
             if errors.get('non_field_errors',None) is not None:
                 error = {"message":errors['non_field_errors'][0]}            
             return Response({"success":False,"error":error},status=400)
+
+
+
+
+class CommentsList(APIView,PaginationHandlerMixin):
+    pagination_class = BasicPagination
+    def post(self,request):
+
+        serializer = PostDetailSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = request.user    
+            data = serializer.data
+            post_obj = serializer.post_obj
+            comments_list = post_obj.comments.all().order_by('-created_at')
+
+
+            
+            page = self.paginate_queryset(comments_list)
+            to_send = []
+            print("page is",page)
+
+            for comment_obj in page:
+                user = comment_obj.user
+                content = comment_obj.content
+
+                full_name = str(user.first_name)+" " +str(user.last_name)
+                thumbnail = user.profile_photo.url
+                is_edited = comment_obj.is_edited
+                if is_edited is True:
+                    timestamp = post_obj.modified_at
+                else:
+                    timestamp = post_obj.created_at                    
+           
+                to_add = {
+                    "thumbnail":thumbnail,
+                    "full_name":full_name,
+                    "user_id":user.id,
+                    'timestamp':timestamp,
+                    'is_edited':is_edited,
+                    'content':content
+
+                    
+                }
+
+                to_send.append(to_add)
+
+
+            print("to_send is",to_send)
+            to_send = self.get_paginated_response(to_send)
+            print("to_send is",to_send)
+
+            return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+
+        if serializer.errors:          
+            errors = serializer.errors
+            print("error is ",errors)
+            if errors.get('non_field_errors',None) is not None:
+                error = {"message":errors['non_field_errors'][0]}            
+            return Response({"success":False,"error":error},status=400)
+
+
+
 
 class CommentsList(APIView):
     def post(self,request):
@@ -425,14 +514,41 @@ class CommentsList(APIView):
 class LikePost(APIView):
     def post(self,request):
 
-        serializer = UserDetailSerailizer(data=request.data)
+        serializer = PostDetailSerializer(data=request.data)
 
         if serializer.is_valid():
             user = request.user    
             data = serializer.data 
+            post_type = data['post_type']
             post_obj = serializer.post_obj
 
+
+            if post_type == "Feed":
+                like_type = 'feed_post'
+                feed_post = post_obj
+                group_post = None
+                is_liked = is_feed_post_liked(user,post_obj)
+
+            if post_type == "Group":
+                like_type = 'group_post'
+                group_post = post_obj
+                feed_post = None
+                is_liked = is_group_post_liked(user,post_obj)
+
+            if is_liked is True:
+                return Response({"success":False,"error":{"message":"post already liked"}},status=400)
+
+
+            like_obj = Like.objects.create(user=user,feed_post=feed_post,group_post=group_post,
+                like_type = like_type)
+            post_obj.no_of_likes += 1
+            post_obj.save()
+
+            activity_obj = Activity.objects.create(user=user,post_id=post_obj.id,activity_type='like_post',
+                    post_type=post_type,like =like_obj )
             
+
+            to_send = {"like_obj_id":like_obj.id}
             # posts = FeedPost.objects.filter(user=user,vis)
             return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
@@ -446,15 +562,38 @@ class LikePost(APIView):
 class UnlikePost(APIView):
     def post(self,request):
 
-        serializer = UserDetailSerailizer(data=request.data)
+        serializer = PostDetailSerializer(data=request.data)
 
         if serializer.is_valid():
             user = request.user    
             data = serializer.data 
             post_obj = serializer.post_obj
 
-            
-            # posts = FeedPost.objects.filter(user=user,vis)
+            post_type = data['post_type']
+            post_obj = serializer.post_obj
+            if post_type == "Feed":
+                feed_post = post_obj
+                group_post = None
+                is_liked = is_feed_post_liked(user,post_obj)
+
+            if post_type == "Group":
+                group_post = post_obj
+                feed_post = None
+                is_liked = is_group_post_liked(user,post_obj)
+
+
+            if is_liked is False:
+                return Response({"success":False,"error":{"message":"post already unliked"}},status=400)
+
+            like_obj = Like.objects.get(user=user,feed_post=feed_post,group_post=group_post,
+                )
+            to_send = {"like_obj_id":like_obj.id}
+
+            like_obj.delete()
+
+            post_obj.no_of_likes -= 1
+            post_obj.save()            
+
             return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
         if serializer.errors:          

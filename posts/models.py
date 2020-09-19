@@ -92,10 +92,13 @@ class Comment(BaseModel):
 
 class Activity(BaseModel):
     types = [
-    ('like_feed_post','like_feed_post'),
-    ('comment_feed_post','comment_feed_post'),   
-    ('create_feed_post','create_feed_post'),   
-    ('share_feed_post','share_feed_post'),   
+    ('like_post','like_post'),
+    
+    ('comment_post','comment_post'),   
+      
+      
+    ('share_post','share_post'),   
+    ('create_post','create_post'),   
             
     ]
         
@@ -105,6 +108,8 @@ class Activity(BaseModel):
     like = models.ForeignKey(Like,on_delete=models.CASCADE,null=True,blank=True)
     comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True)
     post_id = models.IntegerField(null=True,blank=True)
+    post_type = models.CharField(max_length=50,null=True,blank=True)
+    
 
 
 
@@ -112,5 +117,5 @@ class Activity(BaseModel):
 class Notification(BaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='notifications')
     like = models.ForeignKey(Like,on_delete=models.CASCADE,null=True,blank=True)
-    comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True)   
+    comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True) 
     
