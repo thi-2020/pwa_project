@@ -3,7 +3,7 @@ from .models import *
 from django.core import exceptions
 from django.conf import settings
 
-
+from accounts.models import VisibilitySettings
 
 
 def check_post(post_id,post_type):
@@ -62,8 +62,14 @@ class PostCreateSerializer(serializers.Serializer):
         if visibilty_status is None:
             raise serializers.ValidationError("visibilty_status is not present")
         
+
+        types = VisibilitySettings().types
+        
+        print("types is",types)
+        types = [item[0] for item in types]
+
         print("visibilty_status is ",visibilty_status)
-        if visibilty_status not in  ['connections','everyone','connection_and_followers']:
+        if visibilty_status not in  types:
             raise serializers.ValidationError("invalid visibilty_status")
 
         if content is not None:
@@ -83,14 +89,31 @@ class PostUpdateOrDeleteSerializer(serializers.Serializer):
 
     def validate(self, data):
         #checks in order
+        request = self.context.get('request')
         user = request.user
+        print('user is',user) 
+        post_id = data.get('post_id',None)
+        post_type = data.get('post_type',None)
+        content = data.get('content',None)
+        image = data.get('image',None)
+        visibilty_status = data.get('visibilty_status',None)
+
         is_error_occured,error_msg,post_obj = check_post(post_id,post_type)
 
         if is_error_occured is True:
             raise serializers.ValidationError(error_msg)
 
-        
 
+        types = VisibilitySettings().types
+        
+        
+        types = [item[0] for item in types]
+        print("types is",types)
+
+        if visibilty_status is not None:
+            print("visibilty_status is ",visibilty_status)
+            if visibilty_status not in  types:
+                raise serializers.ValidationError("invalid visibilty_status")
 
         self.post_obj = post_obj
 
@@ -119,8 +142,9 @@ class PostDetailSerializer(serializers.Serializer):
         
         post_id = data.get('post_id',None)
         post_type = data.get('post_type',None)
-
-        is_error_occured,error_msg = check_post(post_id,post_type)
+        print("post_id is",post_id)
+        print("post_type is",post_type)
+        is_error_occured,error_msg,post_obj = check_post(post_id,post_type)
 
         if is_error_occured is True:
             raise serializers.ValidationError(error_msg)
@@ -141,7 +165,14 @@ class CreateCommentSerailizer(serializers.Serializer):
 
     def validate(self, data):
         #checks in order
+        
+        request = self.context.get('request')
         user = request.user
+        print('user is',user)
+        post_id = data.get('post_id',None)
+        post_type = data.get('post_type',None)        
+
+        content = data.get('content',None)
         is_error_occured,error_msg,post_obj = check_post(post_id,post_type)
 
         if is_error_occured is True:
@@ -175,8 +206,11 @@ class UpdateOrDeleteCommentSerailizer(serializers.Serializer):
 
     def validate(self, data):
         #checks in order
+        request = self.context.get('request')
         user = request.user
-
+        print('user is',user)        
+        comment_id = data.get('comment_id',None)
+        content = data.get('content',None)
         if comment_id is None:
             raise serializers.ValidationError("comment_id not present")
 

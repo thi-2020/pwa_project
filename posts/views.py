@@ -35,15 +35,16 @@ class GetPost(APIView):
     def post(self, request):
         requesting_user = request.user
 
-        serializer = PostCreateSerializer(data=request.data)
+        serializer = PostDetailSerializer(data=request.data)
 
         if serializer.is_valid():
 
             post_obj  = serializer.post_obj
-
+            user = post_obj.user
+            thumbnail = user.profile_photo.url
             is_liked = is_feed_post_liked(requesting_user,post_obj)            
             image = post_obj.image
-
+            full_name = str(user.first_name)+" " +str(user.last_name)
             if image.name!=u'':
                 print("length of name is ",len(image.name))
                 image = image.url
@@ -51,9 +52,9 @@ class GetPost(APIView):
                 image = None    
 
             if post_obj.is_edited is True:
-                timestamp = post_obj.created_at
-            else:
                 timestamp = post_obj.modified_at
+            else:
+                timestamp = post_obj.created_at
 
             print("image is",image)            
             to_send = {
@@ -79,7 +80,14 @@ class GetPost(APIView):
 
             print("to_send is",to_send)
 
-            return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
+            return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
+        if serializer.errors:
+            errors = serializer.errors
+            print("error is ",errors)
+            if errors.get('non_field_errors',None) is not None:
+                error = {"message":errors['non_field_errors'][0]}
+            
+            return Response({"success":False,"error":error},status=400)
 
 
 
@@ -126,9 +134,20 @@ class UpdatePost(APIView):
             post_obj = serializer.post_obj
 
             post_obj.visibilty_status = data.get('visibilty_status', post_obj.visibilty_status)
-            post_obj.content = data.get('content', post_obj.content)
-            post_obj.image = data.get('image', post_obj.image)
+            new_content = data.get('content', post_obj.content)
+            new_image = data.get('image', post_obj.image)
+            print("new_content is",new_content)
+            print("new_image is",new_image)
+
+            if new_image==post_obj.image and new_content==post_obj.content:
+                is_edited = False
+            else:
+                is_edited = True
+            post_obj.content = new_content
+            post_obj.image = new_image
+            post_obj.is_edited = is_edited
             post_obj.save()
+            
 
             to_send = {"post_id": post_obj.id}
             return Response({"success":True,"data":to_send,"msg":"post updated sucessfully"},status=201)
@@ -148,13 +167,15 @@ class DeletePost(APIView):
         serializer = PostUpdateOrDeleteSerializer(data=request.data,context={'request': request})
 
         if serializer.is_valid():
-             
+            user = request.user
             post_obj = serializer.post_obj
+            post_id = post_obj.id
+            print("post_id is",post_id)
+            activity_obj_list = Activity.objects.filter(post_id=post_id)
+            activity_obj_list.delete()
 
             post_obj.delete()
-            activity_obj = Activity.objects.get(user=user,post=post_obj,activity_type='create_post')
-            activity_obj.delete()
-            to_send = {"post_id": post_obj.id}
+            to_send = {"post_id": post_id}
             return Response({"success":True,"data":to_send,"msg":"post deleted sucessfully"},status=201)
             
         if serializer.errors:            
