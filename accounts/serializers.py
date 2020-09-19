@@ -116,3 +116,5 @@ class UserDetailSerailizer(serializers.Serializer):
 
         self.user_object = user_object
         return data
+
+

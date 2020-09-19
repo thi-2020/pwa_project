@@ -52,9 +52,13 @@ urlpatterns = [
     #profile_api
     path('profile/get_profile_info/',views.GetProfileInfo.as_view(), name='get_profile_info'),
     path('profile/get_other_profile_info/',views.GetOtherProfileInfo.as_view(), name='get_other_profile_info'),
-            # to do
+            
     path('profile/update_profile_photo/',views.UpdateProfilePhoto.as_view(), name='update_profile_photo'),
+    path('profile/delete_profile_photo/',views.DeleteProfilePhoto.as_view(), name='delete_profile_photo'),
     path('profile/update_cover_photo/',views.UpdateCoverPhoto.as_view(), name='update_cover_photo'),
+    path('profile/delete_cover_photo/',views.DeleteCoverPhoto.as_view(), name='delete_cover_photo'),
+
+    # to do
     path('profile/update_profile_info/',views.UpdateProfilePhoto.as_view(), name='get_other_profile_info'),
 
 

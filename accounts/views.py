@@ -181,22 +181,40 @@ class GetOtherProfileInfo(APIView):
         return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
 
+class DeleteProfilePhoto(APIView):
+    def get(self, request,*args,**kwargs):
+        user = request.user
+        print("user is",user)
+        user.profile_photo = '/image/default/default_profile_photo.png'
+        user.is_profile_photo_present = False
+        user.save()
+
+        return Response({"success":True,"data":{},"msg":"deleted sucessfully"},status=200)
+
+class DeleteCoverPhoto(APIView):
+    def get(self, request,*args,**kwargs):
+        user = request.user
+        print("user is",user)
+        user.cover_photo = '/image/default/default_cover_photo.png'
+        user.is_cover_photo_present = False
+        user.save()
+        return Response({"success":True,"data":{},"msg":"deleted sucessfully"},status=200)
 
 
 class UpdateProfilePhoto(APIView):
+    parser_classes = (MultiPartParser, FormParser,)
     def post(self, request,*args,**kwargs):
+
         user = request.user
-        profile_photo = request.data('profile_photo',None)
-        to_delete = request.data('to_delete',None)
+        print("user is",user)
+        print("request data is",request.data)
+       
+        profile_photo = request.data['profile_photo']
 
-        if to_delete is True:
-            user.profile_photo = '/image/default/default_profile_photo.png'
-            user.is_profile_photo_present = False
-            user.save()
 
-            return Response({"success":True,"data":{},"msg":"deleted sucessfully"},status=200)
 
         if profile_photo is not None:
+
             user.profile_photo = profile_photo
             user.is_profile_photo_present = True
             user.save()
@@ -206,20 +224,22 @@ class UpdateProfilePhoto(APIView):
 
 
 class UpdateCoverPhoto(APIView):
+    parser_classes = (MultiPartParser, FormParser,)
     def post(self, request,*args,**kwargs):
+
         user = request.user
-        profile_photo = request.data('profile_photo',None)
-        to_delete = request.data('to_delete',None)
+        print("user is",user)
+        print("request data is",request.data)
+       
+        cover_photo = request.data['cover_photo']
 
-        if to_delete is True:
-            user.profile_photo = '/image/profile_photo/default.png'
+        if cover_photo is not None:
+
+            user.cover_photo = cover_photo
+            user.is_cover_photo_present = True
             user.save()
 
-
-
-        if profile_photo is not None:
-            user.profile_photo = '/image/profile_photo/default.png'
-            user.save()
+        return Response({"success":True,"data":{},"msg":"updated sucessfully"},status=200)
 
 class SendInvitation(APIView):
     # parser_classes = (JSONParser,FormParser,MultiPartParser)
