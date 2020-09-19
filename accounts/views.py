@@ -121,6 +121,8 @@ class GetProfileInfo(APIView):
             "no_of_followers":user.no_of_followers,
             "no_of_following":user.no_of_following,
             "complete_status":user.complete_status,
+            "is_profile_photo_present":user.is_profile_photo_present,
+            "is_cover_photo_present":user.is_cover_photo_present,
         }
         return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
@@ -180,6 +182,44 @@ class GetOtherProfileInfo(APIView):
 
 
 
+
+class UpdateProfilePhoto(APIView):
+    def post(self, request,*args,**kwargs):
+        user = request.user
+        profile_photo = request.data('profile_photo',None)
+        to_delete = request.data('to_delete',None)
+
+        if to_delete is True:
+            user.profile_photo = '/image/default/default_profile_photo.png'
+            user.is_profile_photo_present = False
+            user.save()
+
+            return Response({"success":True,"data":{},"msg":"deleted sucessfully"},status=200)
+
+        if profile_photo is not None:
+            user.profile_photo = profile_photo
+            user.is_profile_photo_present = True
+            user.save()
+
+
+        return Response({"success":True,"data":{},"msg":"updated sucessfully"},status=200)
+
+
+class UpdateCoverPhoto(APIView):
+    def post(self, request,*args,**kwargs):
+        user = request.user
+        profile_photo = request.data('profile_photo',None)
+        to_delete = request.data('to_delete',None)
+
+        if to_delete is True:
+            user.profile_photo = '/image/profile_photo/default.png'
+            user.save()
+
+
+
+        if profile_photo is not None:
+            user.profile_photo = '/image/profile_photo/default.png'
+            user.save()
 
 class SendInvitation(APIView):
     # parser_classes = (JSONParser,FormParser,MultiPartParser)

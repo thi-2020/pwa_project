@@ -47,11 +47,15 @@ class GroupPost(BasePost):
 
 
 class Like(BaseModel):
+    types = (('feed_post','feed_post'),
+            ('group_post','group_post'))
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='likes')
     feed_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='likes',
         null=True,blank=True)
     group_post = models.ForeignKey(GroupPost,on_delete=models.CASCADE,related_name='likes',
         null=True,blank=True)
+
+    like_type = models.CharField(max_length=50,null=True,blank=True,choices=types)
 
 
     class Meta:
@@ -63,6 +67,9 @@ class Like(BaseModel):
 
 
 class Comment(BaseModel):
+    types = (('feed_post','feed_post'),
+            ('group_post','group_post'))
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='comments')
     feed_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='comments',
         null=True,blank=True)
@@ -71,6 +78,7 @@ class Comment(BaseModel):
     content = models.TextField()
     is_edited = models.BooleanField(default=False)
     version = models.IntegerField(default=1)
+    comment_type = models.CharField(max_length=50,null=True,blank=True,choices=types)
 
 
     class Meta:
@@ -84,10 +92,10 @@ class Comment(BaseModel):
 
 class Activity(BaseModel):
     types = [
-    ('like','like'),
-    ('comment','comment'),   
-    ('create_post','create_post'),   
-    ('share_post','share_post'),   
+    ('like_feed_post','like_feed_post'),
+    ('comment_feed_post','comment_feed_post'),   
+    ('create_feed_post','create_feed_post'),   
+    ('share_feed_post','share_feed_post'),   
             
     ]
         
@@ -96,10 +104,7 @@ class Activity(BaseModel):
     activity_type = models.CharField(max_length=50,choices = types,null=True,blank=True)
     like = models.ForeignKey(Like,on_delete=models.CASCADE,null=True,blank=True)
     comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True)
-    create_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,
-            related_name = 'create_post_activity',null=True,blank=True)
-    share_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,
-            related_name = 'share_post_activity',null=True,blank=True)
+    post_id = models.IntegerField(null=True,blank=True)
 
 
 

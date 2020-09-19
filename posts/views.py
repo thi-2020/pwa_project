@@ -24,6 +24,7 @@ import json
 from rest_framework.parsers import FormParser, MultiPartParser
 from accounts.pagination import PaginationHandlerMixin
 from rest_framework.pagination import PageNumberPagination
+from posts.utils import is_feed_post_liked
 
 
 class BasicPagination(PageNumberPagination):
@@ -128,35 +129,44 @@ class SelfTimeline(APIView,PaginationHandlerMixin):
 
 
         user = request.user
-
+        user_full_name = str(user.first_name)+" " +str(user.last_name)
+        full_name = str(user.first_name)+" " +str(user.last_name)
 
         activity_list = Activity.objects.filter(user=user).order_by('-created_at')
         page = self.paginate_queryset(activity_list)
         to_send = []
         print("page is",page)
-        like_id = ''
-        comment_id = ''
+
         for activity_obj in page:
-            user = activity_obj.user
+            
             activity_type = activity_obj.activity_type
+            post_id = activity_obj.post_id
+
             thumbnail = user.profile_photo.url
 
-            post_obj = activity_obj.post
-            
+            # is_liked = is_feed_post_liked(user,post_obj)
+            print("activity_type is",activity_type)
 
-            print("post_obj is",post_obj)
-
-            full_name = str(user.first_name)+" " +str(user.last_name)
-
-            if activity_type == 'like':
+            if activity_type == 'like_feed_post':
                 activity_message = '{} likes this'.format(full_name)
+                post_obj = FeedPost.objects.get(id=post_id)
+                is_liked = is_feed_post_liked(user,post_obj)
 
-            if activity_type == 'create_post':
-                activity_message = None
+            if activity_type == 'create_feed_post':
+                activity_message = '{} added this post'.format(full_name) 
+                post_obj = FeedPost.objects.get(id=post_id)
+                is_liked = is_feed_post_liked(user,post_obj)
 
-            if activity_type == 'comment':
+            if activity_type == 'share_feed_post':
+                activity_message = '{} shared this post'.format(full_name) 
+                post_obj = FeedPost.objects.get(id=post_id)
+                is_liked = is_feed_post_liked(user,post_obj)
+
+
+            if activity_type == 'comment_feed_post':
                 activity_message = '{} commented on this'.format(full_name)        
-
+                post_obj = FeedPost.objects.get(id=post_id)
+                is_liked = is_feed_post_liked(user,post_obj)
             
             image = post_obj.image
 
@@ -172,15 +182,14 @@ class SelfTimeline(APIView,PaginationHandlerMixin):
                 "full_name":full_name,
                 "user_id":user.id,
                 "activity_message":activity_message,
-                "like_id":like_id,
-                "comment_id":comment_id,
                 "post_id":post_obj.id,
                 "is_edited":post_obj.is_edited,
                 "is_comment_disabled":post_obj.is_comment_disabled,
                 "no_of_likes":post_obj.no_of_likes,
                 "no_of_comments":post_obj.no_of_comments,
                 "content":post_obj.content,
-                "image":image
+                "image":image,
+                "is_liked":is_liked,
                 
                 
             }

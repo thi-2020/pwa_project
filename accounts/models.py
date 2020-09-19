@@ -46,12 +46,13 @@ class User(AbstractUser):
     email = models.EmailField()
     phone = models.CharField(max_length=10,blank=True,null=True)
 
-    profile_photo = models.FileField(upload_to='image/profile_photo/', null=True,blank=True, 
+    profile_photo = models.FileField(upload_to='image/users/profile_photo/', null=True,blank=True, 
         verbose_name="profile_photo",
-        default='/image/profile_photo/default.png')
+        default='/image/default/default_profile_photo.png')
 
-    cover_photo = models.FileField(upload_to='image/cover_photo/', null=True,blank=True, 
-        verbose_name="cover_photo")
+    cover_photo = models.FileField(upload_to='image/users/cover_photo/', null=True,blank=True, 
+        verbose_name="cover_photo",
+        default='/image/default/default_cover_photo.png')
 
     complete_status = models.IntegerField(default=1)
 
@@ -60,6 +61,8 @@ class User(AbstractUser):
     no_of_friend = models.IntegerField(default=0)
     no_of_followers = models.IntegerField(default=0)
     no_of_following = models.IntegerField(default=0)
+    is_profile_photo_present = models.BooleanField(default=False)
+    is_cover_photo_present = models.BooleanField(default=False)
 
     REQUIRED_FIELDS = []
 
