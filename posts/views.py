@@ -33,10 +33,53 @@ class BasicPagination(PageNumberPagination):
 
 class GetPost(APIView):
     def post(self, request):
-        user = request.user
+        requesting_user = request.user
 
-        posts = FeedPost.objects.filter(user=user).values()
-        return Response({"posts": posts},status=200)
+        serializer = PostCreateSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            post_obj  = serializer.post_obj
+
+            is_liked = is_feed_post_liked(requesting_user,post_obj)            
+            image = post_obj.image
+
+            if image.name!=u'':
+                print("length of name is ",len(image.name))
+                image = image.url
+            else:
+                image = None    
+
+            if post_obj.is_edited is True:
+                timestamp = post_obj.created_at
+            else:
+                timestamp = post_obj.modified_at
+
+            print("image is",image)            
+            to_send = {
+                "thumbnail":thumbnail,
+                "full_name":full_name,
+                "user_id":user.id,
+                # "activity_message":activity_message,
+                "post_id":post_obj.id,
+                "is_edited":post_obj.is_edited,
+                "is_comment_disabled":post_obj.is_comment_disabled,
+                "no_of_likes":post_obj.no_of_likes,
+                "no_of_comments":post_obj.no_of_comments,
+                "content":post_obj.content,
+                "image":image,
+                "is_liked":is_liked,
+                "timestamp":timestamp,
+                "post_type":'Feed',
+                
+                
+            }
+
+
+
+            print("to_send is",to_send)
+
+            return Response({"success":True,"data":to_send.data,"msg":"ok"},status=200)
 
 
 
@@ -56,8 +99,8 @@ class CreatePost(APIView):
             print("image is",image)
             post_obj = FeedPost.objects.create(user=user,content=content,visibilty_status=visibilty_status,
                 image = image)
-
-            activity_obj = Activity.objects.create(user=user,post=post_obj,activity_type='create_post')
+            
+            activity_obj = Activity.objects.create(user=user,post_id=post_obj.id,activity_type='create_feed_post')
             
 
             to_send = {"post_id": post_obj.id}
@@ -151,6 +194,12 @@ class SelfTimeline(APIView,PaginationHandlerMixin):
             else:
                 image = None    
 
+
+
+            if post_obj.is_edited is True:
+                timestamp = post_obj.created_at
+            else:
+                timestamp = post_obj.modified_at
             print("image is",image)            
             to_add = {
                 "thumbnail":thumbnail,
@@ -165,6 +214,8 @@ class SelfTimeline(APIView,PaginationHandlerMixin):
                 "content":post_obj.content,
                 "image":image,
                 "is_liked":is_liked,
+                "timestamp":timestamp,
+                "post_type":'Feed',
                 
                 
             }
@@ -211,7 +262,10 @@ class OthersTimeLine(APIView,PaginationHandlerMixin):
                 image = image.url
             else:
                 image = None    
-
+            if post_obj.is_edited is True:
+                timestamp = post_obj.created_at
+            else:
+                timestamp = post_obj.modified_at
             print("image is",image)            
             to_add = {
                 "thumbnail":thumbnail,
@@ -226,6 +280,8 @@ class OthersTimeLine(APIView,PaginationHandlerMixin):
                 "content":post_obj.content,
                 "image":image,
                 "is_liked":is_liked,
+                "timestamp":timestamp,
+                "post_type":'Feed',
                 
                 
             }
@@ -263,7 +319,10 @@ class NewsFeed(APIView,PaginationHandlerMixin):
                 image = image.url
             else:
                 image = None    
-
+            if post_obj.is_edited is True:
+                timestamp = post_obj.created_at
+            else:
+                timestamp = post_obj.modified_at
             print("image is",image)            
             to_add = {
                 "thumbnail":thumbnail,
@@ -278,6 +337,8 @@ class NewsFeed(APIView,PaginationHandlerMixin):
                 "content":post_obj.content,
                 "image":image,
                 "is_liked":is_liked,
+                "timestamp":timestamp,
+                "post_type":'Feed',
                 
                 
             }
