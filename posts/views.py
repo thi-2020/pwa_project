@@ -58,6 +58,7 @@ class CreatePost(APIView):
                 image = image)
 
             activity_obj = Activity.objects.create(user=user,post=post_obj,activity_type='create_post')
+            
 
             to_send = {"post_id": post_obj.id}
             return Response({"success":True,"data":to_send,"msg":"post created sucessfully"},status=201)
@@ -109,7 +110,7 @@ class DeletePost(APIView):
 
             post_obj.delete()
             activity_obj = Activity.objects.get(user=user,post=post_obj,activity_type='create_post')
-
+            activity_obj.delete()
             to_send = {"post_id": post_obj.id}
             return Response({"success":True,"data":to_send,"msg":"post deleted sucessfully"},status=201)
             

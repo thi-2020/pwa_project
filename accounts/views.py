@@ -123,6 +123,7 @@ class GetProfileInfo(APIView):
             "complete_status":user.complete_status,
             "is_profile_photo_present":user.is_profile_photo_present,
             "is_cover_photo_present":user.is_cover_photo_present,
+            "user_id":user.id
         }
         return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
