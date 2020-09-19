@@ -20,6 +20,8 @@ urlpatterns = [
 
     #feed
     path('self_time_line/', views.SelfTimeline.as_view(), name='self_time_line'),
+    path('others_time_line/', views.OthersTimeLine.as_view(), name='others_time_line'),
+    path('news_feed/', views.NewsFeed.as_view(), name='news_feed'),
     
 
 ]
