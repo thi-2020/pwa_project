@@ -42,7 +42,7 @@ urlpatterns = [
     path('follow/follwing_list/', views.GetAllFollowingList.as_view(), name='mutual_connections'),
     path('friend/follow_person/', views.GetAllConnectionsList.as_view(), name='all_friends'),
     path('friend/unfollow_person/', views.HandleConnectionRequest.as_view(), name='handle_request'),
-    path('friend/remove_a_follower/', views.HandleConnectionRequest.as_view(), name='handle_request'),
+  
 
 
 

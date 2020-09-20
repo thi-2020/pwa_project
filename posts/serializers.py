@@ -155,7 +155,36 @@ class PostDetailSerializer(serializers.Serializer):
         self.post_obj = post_obj
         return data
 
+class UpdatePostCommentSettingsSerializer(serializers.Serializer):
+    post_id = serializers.IntegerField(required=False)
+    post_type = serializers.CharField(required=False)
+    comments_status  = serializers.CharField(required=False)
 
+    def validate(self, data):
+        request = self.context.get('request')
+        user = request.user
+        print('user is',user)         
+        post_id = data.get('post_id',None)
+        post_type = data.get('post_type',None)
+        comments_status = data.get('comments_status',None)
+        print("post_id is",post_id)
+        print("post_type is",post_type)
+        is_error_occured,error_msg,post_obj = check_post(post_id,post_type)
+
+        if is_error_occured is True:
+            raise serializers.ValidationError(error_msg)
+
+
+        if post_obj.user != user:
+            raise serializers.ValidationError("Unauthorized to perform this action")
+
+
+        if comments_status is not None:
+            if comments_status not in ['enable','disable']:
+                raise serializers.ValidationError("invalid comment status")
+
+        self.post_obj = post_obj
+        return data
 
 class CreateCommentSerailizer(serializers.Serializer):
     post_id = serializers.IntegerField(required=False)
@@ -180,9 +209,6 @@ class CreateCommentSerailizer(serializers.Serializer):
 
         
 
-
-        self.post_obj = post_obj
-
         if post_obj.is_comment_disabled is True:
             raise serializers.ValidationError("Comments on this post are disabled")
 
@@ -194,6 +220,8 @@ class CreateCommentSerailizer(serializers.Serializer):
             if len(content)>settings.POST_MAX_LENGTH:
                 raise serializers.ValidationError("Comment is too long")
 
+
+        self.post_obj = post_obj
         return data
 
 
@@ -216,6 +244,12 @@ class UpdateOrDeleteCommentSerailizer(serializers.Serializer):
 
 
         if content is not None:
+            if len(content)==0:
+                raise serializers.ValidationError("Empty comment now allowed")
+                
+        
+
+
             if len(content)>settings.POST_MAX_LENGTH:
                 raise serializers.ValidationError("Comment is too long")
         
@@ -225,7 +259,7 @@ class UpdateOrDeleteCommentSerailizer(serializers.Serializer):
             error_msg = "Comment not found"
             raise serializers.ValidationError(error_msg)
 
-        if comment_obj.user == user:
+        if comment_obj.user != user:
             raise serializers.ValidationError("Unauthorized to perform this action")
 
 

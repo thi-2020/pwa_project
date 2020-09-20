@@ -24,7 +24,7 @@ import json
 from rest_framework.parsers import FormParser, MultiPartParser
 from accounts.pagination import PaginationHandlerMixin
 from rest_framework.pagination import PageNumberPagination
-from posts.utils import is_feed_post_liked,is_group_post_liked
+from posts.utils import is_post_liked,create_activity_and_notification_object
 
 
 class BasicPagination(PageNumberPagination):
@@ -42,7 +42,7 @@ class GetPost(APIView):
             post_obj  = serializer.post_obj
             user = post_obj.user
             thumbnail = user.profile_photo.url
-            is_liked = is_feed_post_liked(requesting_user,post_obj)            
+            is_liked = is_post_liked(requesting_user,post_obj,'Feed')            
             image = post_obj.image
             full_name = str(user.first_name)+" " +str(user.last_name)
             if image.name!=u'':
@@ -109,9 +109,9 @@ class CreatePost(APIView):
             print("image is",image)
             post_obj = FeedPost.objects.create(user=user,content=content,visibilty_status=visibilty_status,
                 image = image)
-            
-            activity_obj = Activity.objects.create(user=user,post_id=post_obj.id,activity_type='create_post',
-                    post_type=post_type)
+            activity_type='create_post'
+            feed_post,group_post,activity_obj = create_activity_and_notification_object(
+                        user,post_obj,post_type,activity_type)
             
 
             to_send = {"post_id": post_obj.id}
@@ -189,6 +189,33 @@ class DeletePost(APIView):
 
 
 
+
+class UpdatePostCommentSettings(APIView):
+    def post(self,request):
+        
+        serializer = UpdatePostCommentSettingsSerializer(data=request.data,context={'request': request})
+
+        if serializer.is_valid():
+            user = request.user
+            data = request.data
+            post_obj = serializer.post_obj
+            is_comment_disabled = post_obj.is_comment_disabled
+            comment_status = data['comment_status']
+
+            if comment_status=='disable':
+                post_obj.is_comment_disabled = True
+                post_obj.save()
+            if comment_status=='enable':
+                post_obj.is_comment_disabled = False
+                post_obj.save()
+            
+            return Response({"success":True,"data":{},"msg":"updated sucessfully"},status=201)
+            
+        if serializer.errors:            
+            errors = serializer.errors
+            if errors.get('non_field_errors',None) is not None:
+                error = {"message":errors['non_field_errors'][0]}          
+            return Response({"success":False,"error":error},status=400)  
 
 
 
@@ -438,8 +465,11 @@ class CommentsList(APIView,PaginationHandlerMixin):
             user = request.user    
             data = serializer.data
             post_obj = serializer.post_obj
-            comments_list = post_obj.comments.all().order_by('-created_at')
-
+            print("post obj is",post_obj)
+            comments_list = post_obj.comments.all()
+            print("comments_list is",comments_list)
+            comments_list = comments_list.order_by('-created_at')
+            print("comments_list 2 is",comments_list)
 
             
             page = self.paginate_queryset(comments_list)
@@ -464,7 +494,8 @@ class CommentsList(APIView,PaginationHandlerMixin):
                     "user_id":user.id,
                     'timestamp':timestamp,
                     'is_edited':is_edited,
-                    'content':content
+                    'content':content,
+                    'comment_id':comment_obj.id,
 
                     
                 }
@@ -488,29 +519,6 @@ class CommentsList(APIView,PaginationHandlerMixin):
 
 
 
-class CommentsList(APIView):
-    def post(self,request):
-
-        serializer = UserDetailSerailizer(data=request.data)
-
-        if serializer.is_valid():
-            user = request.user    
-            data = serializer.data 
-            post_obj = serializer.post_obj            
-
-
-            
-            # posts = FeedPost.objects.filter(user=user,vis)
-            return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
-
-        if serializer.errors:          
-            errors = serializer.errors
-            print("error is ",errors)
-            if errors.get('non_field_errors',None) is not None:
-                error = {"message":errors['non_field_errors'][0]}            
-            return Response({"success":False,"error":error},status=400)
-
-
 class LikePost(APIView):
     def post(self,request):
 
@@ -522,31 +530,23 @@ class LikePost(APIView):
             post_type = data['post_type']
             post_obj = serializer.post_obj
 
-
-            if post_type == "Feed":
-                like_type = 'feed_post'
-                feed_post = post_obj
-                group_post = None
-                is_liked = is_feed_post_liked(user,post_obj)
-
-            if post_type == "Group":
-                like_type = 'group_post'
-                group_post = post_obj
-                feed_post = None
-                is_liked = is_group_post_liked(user,post_obj)
+            is_liked = is_post_liked(user,post_obj,post_type)
 
             if is_liked is True:
                 return Response({"success":False,"error":{"message":"post already liked"}},status=400)
 
+            feed_post,group_post,activity_obj = create_activity_and_notification_object(
+                        user,post_obj,post_type,'like_post')
 
             like_obj = Like.objects.create(user=user,feed_post=feed_post,group_post=group_post,
-                like_type = like_type)
+                )
             post_obj.no_of_likes += 1
             post_obj.save()
 
-            activity_obj = Activity.objects.create(user=user,post_id=post_obj.id,activity_type='like_post',
-                    post_type=post_type,like =like_obj )
+
             
+            activity_obj.like = like_obj
+            activity_obj.save()
 
             to_send = {"like_obj_id":like_obj.id}
             # posts = FeedPost.objects.filter(user=user,vis)
@@ -570,16 +570,18 @@ class UnlikePost(APIView):
             post_obj = serializer.post_obj
 
             post_type = data['post_type']
-            post_obj = serializer.post_obj
+            is_liked = is_post_liked(user,post_obj,post_type)
+
+            
             if post_type == "Feed":
                 feed_post = post_obj
                 group_post = None
-                is_liked = is_feed_post_liked(user,post_obj)
+                
 
             if post_type == "Group":
                 group_post = post_obj
                 feed_post = None
-                is_liked = is_group_post_liked(user,post_obj)
+                
 
 
             if is_liked is False:
@@ -607,13 +609,31 @@ class UnlikePost(APIView):
 class CreateComment(APIView):
     def post(self,request):
 
-        serializer = UserDetailSerailizer(data=request.data)
+        serializer = CreateCommentSerailizer(data=request.data,context={'request': request})
 
         if serializer.is_valid():
             user = request.user    
             data = serializer.data 
-            
-            to_send = {"post_id": post_obj.id}
+            post_type = data['post_type']
+            content = data['content']
+            post_obj =serializer.post_obj
+
+            if post_type=='Feed':
+                comment_type = 'feed_post'
+            elif post_type=='Group':
+                comment_type = 'group_post'                
+
+            feed_post,group_post,activity_obj = create_activity_and_notification_object(
+                        user,post_obj,post_type,'comment_post',)
+
+            comment_obj = Comment.objects.create(user=user,feed_post=feed_post,group_post=group_post,
+                content=content,comment_type=comment_type)
+            post_obj.no_of_comments += 1
+            post_obj.save()
+            activity_obj.comment = comment_obj
+            activity_obj.save()
+
+            to_send = {"comment_id": comment_obj.id}
             return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
 
         if serializer.errors:          
@@ -627,7 +647,7 @@ class CreateComment(APIView):
 class UpdateComment(APIView):
     def post(self,request):
 
-        serializer = UpdateOrDeleteCommentSerailizer(data=request.data)
+        serializer = UpdateOrDeleteCommentSerailizer(data=request.data,context={'request': request})
 
         if serializer.is_valid():
             user = request.user    
@@ -635,11 +655,46 @@ class UpdateComment(APIView):
             comment_obj = serializer.comment_obj 
             
             comment_obj.content = data.get('content',comment_obj.content)
+            comment_obj.is_edited = True
             comment_obj.save()
 
             
-            # posts = FeedPost.objects.filter(user=user,vis)
-            return Response({"success":True,"data":to_send,"msg":"ok"},status=200)
+            to_send = {"comment_id": comment_obj.id}
+            return Response({"success":True,"data":to_send,"msg":"comment updated successfully"},status=200)
+
+        if serializer.errors:          
+            errors = serializer.errors
+            print("error is ",errors)
+            if errors.get('non_field_errors',None) is not None:
+                error = {"message":errors['non_field_errors'][0]}            
+            return Response({"success":False,"error":error},status=400)
+
+
+class DeleteComment(APIView):
+    def post(self,request):
+
+        serializer = UpdateOrDeleteCommentSerailizer(data=request.data,context={'request': request})
+
+        if serializer.is_valid():
+            user = request.user    
+            data = serializer.data 
+            comment_obj = serializer.comment_obj 
+            if comment_obj.comment_type == "feed_post":
+                post_obj = comment_obj.feed_post
+            elif comment_obj.comment_type == "group_post":
+                post_obj = comment_obj.group_post
+
+            
+            to_send = {"comment_id":comment_obj.id}
+
+           
+            post_obj.no_of_comments -= 1
+            post_obj.save()
+
+            comment_obj.delete()            
+
+
+            return Response({"success":True,"data":to_send,"msg":"comment deleted successfully"},status=200)
 
         if serializer.errors:          
             errors = serializer.errors

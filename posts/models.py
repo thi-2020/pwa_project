@@ -81,12 +81,9 @@ class Comment(BaseModel):
     comment_type = models.CharField(max_length=50,null=True,blank=True,choices=types)
 
 
-    class Meta:
-        unique_together = (('user', 'feed_post'),
-                           ('user', 'feed_post'))
 
     def __str__(self):
-        return self.user
+        return str(self.user)
 
 
 
@@ -107,9 +104,12 @@ class Activity(BaseModel):
     activity_type = models.CharField(max_length=50,choices = types,null=True,blank=True)
     like = models.ForeignKey(Like,on_delete=models.CASCADE,null=True,blank=True)
     comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True)
-    post_id = models.IntegerField(null=True,blank=True)
-    post_type = models.CharField(max_length=50,null=True,blank=True)
     
+    post_type = models.CharField(max_length=50,null=True,blank=True)
+    feed_post = models.ForeignKey(FeedPost,on_delete=models.CASCADE,related_name='activities',
+        null=True,blank=True)
+    group_post = models.ForeignKey(GroupPost,on_delete=models.CASCADE,related_name='activities'
+        ,null=True,blank=True)
 
 
 
@@ -118,4 +118,6 @@ class Notification(BaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='notifications')
     like = models.ForeignKey(Like,on_delete=models.CASCADE,null=True,blank=True)
     comment = models.ForeignKey(Comment,on_delete=models.CASCADE,null=True,blank=True) 
-    
+    is_read = models.BooleanField(default=False)
+    post_id = models.IntegerField(null=True,blank=True)
+    post_type = models.CharField(max_length=50,null=True,blank=True)
