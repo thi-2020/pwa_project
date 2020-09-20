@@ -975,6 +975,56 @@ class VisibilitySettingsOptionsList(APIView):
             return Follow.objects.filter(follower=follower, followee=followee).exists()
 
 
+class FollowPerson(APIView):
+    def post(self,request):
+
+        serializer = UserDetailSerailizer(data=request.data,context={'request': request})
+
+        if serializer.is_valid():
+            user = request.user    
+            data = serializer.data 
+            user_object = serializer.user_object
+            if user_object == user:
+                msg = "Users cannot follow themselves."
+                return Response({"success":False,"error":{"message":msg}},status=404)
+
+
+            
+            is_following_resp = is_following(user,user_object)
+
+            if is_following_resp is True:
+                return Response({"success":False,"error":{"message":"person already followed"}},status=404)
+
+
+            return Response({"success":True,"data":{},"msg":"followed sucessfully"},status=200)
+
+        if serializer.errors:          
+            errors = serializer.errors
+            print("error is ",errors)
+            if errors.get('non_field_errors',None) is not None:
+                error = {"message":errors['non_field_errors'][0]}            
+            return Response({"success":False,"error":error},status=400)
+
+class UnFollowPerson(APIView):
+    def post(self,request):
+
+        serializer = UserDetailSerailizer(data=request.data,context={'request': request})
+
+        if serializer.is_valid():
+            user = request.user    
+
+
+            data = serializer.data 
+            user_object = serializer.user_object
+            
+            return Response({"success":True,"data":{},"msg":"unfollowed sucessfully"},status=200)
+
+        if serializer.errors:          
+            errors = serializer.errors
+            print("error is ",errors)
+            if errors.get('non_field_errors',None) is not None:
+                error = {"message":errors['non_field_errors'][0]}            
+            return Response({"success":False,"error":error},status=400)
 
 
 class GetAllFollowersList(APIView,PaginationHandlerMixin):

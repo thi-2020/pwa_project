@@ -236,7 +236,7 @@ class SelfTimeline(APIView,PaginationHandlerMixin):
 
         for post_obj in page:
 
-            is_liked = is_feed_post_liked(user,post_obj)            
+            is_liked = is_post_liked(user,post_obj,'Feed')        
             image = post_obj.image
 
             if image.name!=u'':
@@ -305,7 +305,7 @@ class OthersTimeLine(APIView,PaginationHandlerMixin):
 
         for post_obj in page:
 
-            is_liked = is_feed_post_liked(requesting_user,post_obj)            
+            is_liked = is_post_liked(user,post_obj,'Feed')              
             image = post_obj.image
 
             if image.name!=u'':
@@ -361,7 +361,7 @@ class NewsFeed(APIView,PaginationHandlerMixin):
 
         for post_obj in page:
             user = post_obj.user
-            is_liked = is_feed_post_liked(requesting_user,post_obj)            
+            is_liked = is_post_liked(user,post_obj,'Feed')                
             image = post_obj.image
             full_name = str(user.first_name)+" " +str(user.last_name)
             thumbnail = user.profile_photo.url
