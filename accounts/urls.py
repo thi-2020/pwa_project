@@ -38,10 +38,10 @@ urlpatterns = [
 
     #followers
 
-    path('follow/follwers_list/', views.GetAllFollowersList.as_view(), name='get_received_friend_requests_list'),
-    path('follow/follwing_list/', views.GetAllFollowingList.as_view(), name='mutual_connections'),
-    path('friend/follow_person/', views.GetAllConnectionsList.as_view(), name='all_friends'),
-    path('friend/unfollow_person/', views.HandleConnectionRequest.as_view(), name='handle_request'),
+    path('follow/follwers_list/', views.GetAllFollowersList.as_view(), name='followers_list'),
+    path('follow/follwing_list/', views.GetAllFollowingList.as_view(), name='follwing_list'),
+    path('follow/follow_person/', views.FollowPerson.as_view(), name='follow'),
+    path('follow/unfollow_person/', views.UnFollowPerson.as_view(), name='unfollow'),
   
 
 

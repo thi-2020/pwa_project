@@ -756,7 +756,11 @@ class DeleteConnection(APIView):
         except Connection.DoesNotExist:
             return Response({"success":False,"error":{"message":"Connection Does Not Exist"}},status=404)
         
+        user.no_of_friend -= 1
+        user.save()
 
+        other_user.no_of_friend -= 1
+        other_user.save()        
 
 
         return Response({"success":True,"data":{},"msg":"connection deleted successfully"},status=200)
@@ -995,6 +999,15 @@ class FollowPerson(APIView):
             if is_following_resp is True:
                 return Response({"success":False,"error":{"message":"person already followed"}},status=404)
 
+            follow_object = Follow.objects.create(from_user=user,to_user=user_object)
+
+
+            user.no_of_following += 1
+            user.save()
+
+            user_object.no_of_followers += 1
+            user_object.save()
+
 
             return Response({"success":True,"data":{},"msg":"followed sucessfully"},status=200)
 
@@ -1012,11 +1025,23 @@ class UnFollowPerson(APIView):
 
         if serializer.is_valid():
             user = request.user    
-
-
-            data = serializer.data 
             user_object = serializer.user_object
             
+            is_following_resp = is_following(user,user_object)
+
+            if is_following_resp is False:
+                return Response({"success":False,"error":{"message":"person already unfollowed"}},status=404)
+            
+            follow_object = Follow.objects.get(from_user=user,to_user=user_object)
+
+            follow_object.delete()
+
+            user.no_of_following -= 1
+            user.save()
+
+            user_object.no_of_followers -= 1
+            user_object.save()
+
             return Response({"success":True,"data":{},"msg":"unfollowed sucessfully"},status=200)
 
         if serializer.errors:          
