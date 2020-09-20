@@ -74,6 +74,7 @@ class UserCreate(APIView):
             if sender.is_staff is False:
                 connection_object1 = Connection.objects.create(from_user=sender,to_user=user)
                 connection_object2 = Connection.objects.create(from_user=user,to_user=sender)
+                #write code to increase no of friend
 
            
             if user:               
@@ -1147,3 +1148,45 @@ def update_visibilty_settings(APIView):
         except Exception as e:
             continue
     return HttpResponse("done")
+
+
+
+
+def create_test_user(request):
+    test_user_4 = User.objects.get(username='testuser4')
+
+    for x in range(20,40):
+        username = 'test'+str(x)
+        email = 'test'+str(x)+"@gmail.com"
+        first_name = "firstname"+str(x)
+        last_name = "lasttname"+str(x)
+        password="Qilin12@"
+        user = User.objects.create_user(email=email,password=password,username=username,
+            last_name=last_name,first_name=first_name)
+
+        test_user_4.no_of_friend+= 1
+        user.no_of_friend+= 1
+        test_user_4.save()
+        user.save()
+
+
+    for x in range(20,40):
+        username = 'test'+str(x)
+
+        user = User.objects.get(username=username)
+        connection_object1 = Connection.objects.create(from_user=user,to_user=test_user_4)
+        follow_object1 = Follow.objects.create(from_user=user,to_user=test_user_4)
+        connection_object2 = Connection.objects.create(from_user=test_user_4,to_user=user)
+        follow_object2 = Follow.objects.create(from_user=test_user_4,to_user=user)
+
+
+        test_user_4.no_of_followers+= 1
+        test_user_4.no_of_following+= 1
+        user.no_of_followers+= 1
+        user.no_of_following+= 1
+       
+        test_user_4.save()
+        user.save()
+
+    return HttpResponse("done")
+

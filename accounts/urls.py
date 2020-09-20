@@ -17,6 +17,7 @@ urlpatterns = [
     path('get_invitations_left/', views.InvitationLeft.as_view(), name='get_invitations_left'),
     path('check_invitation/', views.CheckInvitation.as_view(), name='check_invitation'),
     path('testemail/', views.testemail, name='testemail'),
+    path('create_test_user/', views.create_test_user, name='testemail'),
    
 
 
