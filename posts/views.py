@@ -109,6 +109,7 @@ class CreatePost(APIView):
             print("image is",image)
             post_obj = FeedPost.objects.create(user=user,content=content,visibilty_status=visibilty_status,
                 image = image)
+            post_type ='Feed'
             activity_type='create_post'
             feed_post,group_post,activity_obj = create_activity_and_notification_object(
                         user,post_obj,post_type,activity_type)
