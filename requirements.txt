@@ -5,7 +5,7 @@ billiard==3.6.3.0
 bitcoin==1.1.39
 blockchain==1.4.4
 blockcypher==1.0.80
-celery==4.4.4
+celery==5.2.2
 certifi==2019.11.28
 chardet==3.0.4
 defusedxml==0.6.0
